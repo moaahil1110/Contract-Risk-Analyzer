@@ -60,7 +60,7 @@ async def create_contract(user_id: Optional[str], filename: str, contract_type: 
             
     except Exception as e:
         logger.error(f"Error creating contract: {e}")
-            return None
+        return None
 
 
 async def update_contract_type_metadata(contract_id: str, type_metadata: Dict[str, Any]) -> bool:
