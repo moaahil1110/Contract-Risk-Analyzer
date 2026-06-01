@@ -108,6 +108,10 @@ export const pollUntilComplete = async (contractId, onUpdate, onComplete, onErro
         return
       }
 
+      if (data.status === 'failed') {
+        throw new Error(data.error || data.message || 'Analysis failed')
+      }
+
       // Continue polling every 3 seconds
       setTimeout(poll, 3000)
     } catch (error) {

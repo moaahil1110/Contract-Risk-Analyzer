@@ -11,8 +11,17 @@ import {
   Loader2, 
   AlertCircle,
   ChevronRight,
-  Clock
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
+
+const progressStages = [
+  { key: 'upload', label: 'Uploading PDF' },
+  { key: 'extract', label: 'Extracting clauses' },
+  { key: 'analyse', label: 'Analyzing risks' },
+  { key: 'save', label: 'Saving results' },
+  { key: 'complete', label: 'Complete' },
+];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -26,6 +35,7 @@ const Dashboard = () => {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [contractId, setContractId] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState('');
+  const [currentStage, setCurrentStage] = useState(null);
 
   const contractTypes = [
     { value: 'nda', label: 'NDA (Non-Disclosure Agreement)' },
@@ -66,6 +76,9 @@ const Dashboard = () => {
   const handleFileSelect = (selectedFile) => {
     setFile(selectedFile);
     setError(null);
+    setAnalysisStatus('');
+    setCurrentStage(null);
+    setContractId(null);
   };
 
   const handleAnalyze = async () => {
@@ -76,39 +89,58 @@ const Dashboard = () => {
 
     setLoading(true);
     setError(null);
+    setCurrentStage('upload');
+    setAnalysisStatus('Uploading PDF...');
 
     try {
-      // Upload the file
-      setAnalysisStatus('Uploading...');
+      setCurrentStage('extract');
+      setAnalysisStatus('Uploading PDF and extracting clauses...');
       const uploadResponse = await uploadContract(file, contractType);
       setContractId(uploadResponse.contract_id);
       setAnalyzing(true);
+      setCurrentStage('analyse');
       setAnalysisStatus('Starting analysis...');
 
       // Start backend analysis before polling for completed results
       await startAnalysis(uploadResponse.contract_id);
+      setCurrentStage('analyse');
       setAnalysisStatus('Analyzing contract...');
 
       // Poll for results
       pollUntilComplete(
         uploadResponse.contract_id,
         (data) => {
-          setAnalysisStatus(data.status === 'complete' ? 'Complete!' : 'Analyzing contract...');
+          if (data.status === 'complete') {
+            setCurrentStage('save');
+            setAnalysisStatus('Saving results...');
+          } else {
+            setCurrentStage('analyse');
+            setAnalysisStatus('Analyzing contract...');
+          }
         },
         (data) => {
+          setCurrentStage('complete');
+          setAnalysisStatus('Analysis complete. Opening results...');
           setAnalyzing(false);
           setLoading(false);
-          navigate(`/results/${uploadResponse.contract_id}`);
+          setTimeout(() => {
+            navigate(`/results/${uploadResponse.contract_id}`);
+          }, 400);
         },
         (err) => {
           setAnalyzing(false);
           setLoading(false);
+          setCurrentStage(null);
+          setAnalysisStatus('');
           setError(err.message || 'Analysis failed');
         }
       );
     } catch (err) {
       setError(err.message || 'Failed to upload contract');
       setLoading(false);
+      setAnalyzing(false);
+      setCurrentStage(null);
+      setAnalysisStatus('');
     }
   };
 
@@ -130,6 +162,9 @@ const Dashboard = () => {
     if (score < 75) return 'text-yellow-600 bg-yellow-50';
     return 'text-green-600 bg-green-50';
   };
+
+  const currentStageIndex = progressStages.findIndex((stage) => stage.key === currentStage);
+  const showProgress = currentStageIndex >= 0 || analysisStatus;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -216,6 +251,54 @@ const Dashboard = () => {
                 'Analyze Contract'
               )}
             </button>
+
+            {showProgress && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <p className="text-sm font-medium text-blue-900">
+                    {analysisStatus || 'Preparing analysis...'}
+                  </p>
+                  {contractId && (
+                    <span className="hidden sm:inline text-xs text-blue-700 font-mono">
+                      {contractId.slice(0, 8)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                  {progressStages.map((stage, index) => {
+                    const isComplete = currentStage === 'complete' || index < currentStageIndex;
+                    const isCurrent = index === currentStageIndex && currentStage !== 'complete';
+                    const isPending = !isComplete && !isCurrent;
+
+                    return (
+                      <div
+                        key={stage.key}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                          isComplete
+                            ? 'border-green-200 bg-green-50 text-green-800'
+                            : isCurrent
+                              ? 'border-blue-300 bg-white text-blue-900'
+                              : 'border-gray-200 bg-white text-gray-500'
+                        }`}
+                      >
+                        {isComplete ? (
+                          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                        ) : isCurrent ? (
+                          <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin" />
+                        ) : (
+                          <span className="w-4 h-4 flex-shrink-0 rounded-full border border-current text-[10px] flex items-center justify-center">
+                            {index + 1}
+                          </span>
+                        )}
+                        <span className="truncate">{stage.label}</span>
+                        {isPending && <span className="sr-only">Pending</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
