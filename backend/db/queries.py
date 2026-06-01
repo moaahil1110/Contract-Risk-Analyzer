@@ -411,6 +411,62 @@ async def get_clauses_for_contract(contract_id: str) -> List[Dict[str, Any]]:
 # User Profile Operations
 # =============================================================================
 
+async def ensure_user_profile(user_id: str, email: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Ensure a user profile exists for a Supabase Auth user.
+    
+    Args:
+        user_id: The user's UUID from auth.users
+        email: The user's email address
+    
+    Returns:
+        The existing or created user profile record, or None if failed
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping ensure_user_profile")
+        return None
+    
+    client = get_supabase_client()
+    if not client:
+        return None
+    
+    safe_email = email or "unknown@example.com"
+    
+    try:
+        existing = client.table("user_profiles").select("*").eq("id", user_id).limit(1).execute()
+        
+        if existing.data:
+            profile = existing.data[0]
+            if safe_email and profile.get("email") != safe_email:
+                update_result = client.table("user_profiles").update({
+                    "email": safe_email
+                }).eq("id", user_id).execute()
+                if update_result.data:
+                    return update_result.data[0]
+            return profile
+        
+        profile_data = {
+            "id": user_id,
+            "email": safe_email,
+            "analyses_used": 0,
+            "plan": "free",
+            "created_at": datetime.utcnow().isoformat(),
+        }
+        
+        result = client.table("user_profiles").insert(profile_data).execute()
+        
+        if result.data and len(result.data) > 0:
+            logger.info(f"Ensured user profile: {user_id}")
+            return result.data[0]
+        
+        logger.error("Failed to ensure user profile: no data returned")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error ensuring user profile: {e}")
+        return None
+
+
 async def create_user_profile(user_id: str, email: str) -> Optional[Dict[str, Any]]:
     """
     Create a user profile when a new user signs up.

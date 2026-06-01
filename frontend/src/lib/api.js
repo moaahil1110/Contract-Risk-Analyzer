@@ -6,18 +6,20 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const getAuthHeaders = async () => {
   const { getSession } = await import('./supabase.js')
   const session = await getSession()
-  return {
-    'Authorization': `Bearer ${session?.access_token || ''}`,
-  }
+  return session?.access_token
+    ? { 'Authorization': `Bearer ${session.access_token}` }
+    : {}
 }
 
 export const uploadContract = async (file, contractType) => {
+  const headers = await getAuthHeaders()
   const formData = new FormData()
   formData.append('file', file)
   formData.append('contract_type', contractType)
 
   const response = await fetch(`${API_URL}/api/v1/upload`, {
     method: 'POST',
+    headers,
     body: formData,
   })
 

@@ -12,7 +12,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Background
 from models.contract import UploadResponse
 from pipeline.pdf_parser import extract_text_from_pdf
 from pipeline.clause_splitter import split_clauses
-from db.queries import create_contract
+from db.queries import create_contract, ensure_user_profile
 from api.middleware.auth import optional_user
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ async def upload_contract(
     """
     # Get user ID from the authenticated user
     user_id = user.get("id") if user else None
+    user_email = user.get("email") if user else None
     
     # Validate file type
     if not file.filename or not file.filename.lower().endswith('.pdf'):
@@ -65,6 +66,9 @@ async def upload_contract(
     # In DEV_MODE, user_id may be None - Supabase will store NULL for user_id
     db_contract = None
     try:
+        if user_id:
+            await ensure_user_profile(user_id=user_id, email=user_email)
+        
         db_contract = await create_contract(
             user_id=user_id,
             filename=file.filename,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadContract, getHistory, pollUntilComplete } from '../lib/api';
+import { uploadContract, startAnalysis, getHistory, pollUntilComplete } from '../lib/api';
 import { signOut, getCurrentUser } from '../lib/supabase';
 import UploadZone from '../components/UploadZone';
 import RiskBadge from '../components/RiskBadge';
@@ -79,16 +79,21 @@ const Dashboard = () => {
 
     try {
       // Upload the file
+      setAnalysisStatus('Uploading...');
       const uploadResponse = await uploadContract(file, contractType);
       setContractId(uploadResponse.contract_id);
       setAnalyzing(true);
-      setAnalysisStatus('Uploading...');
+      setAnalysisStatus('Starting analysis...');
+
+      // Start backend analysis before polling for completed results
+      await startAnalysis(uploadResponse.contract_id);
+      setAnalysisStatus('Analyzing contract...');
 
       // Poll for results
       pollUntilComplete(
         uploadResponse.contract_id,
         (data) => {
-          setAnalysisStatus(data.status === 'processing' ? 'Analyzing contract...' : 'Complete!');
+          setAnalysisStatus(data.status === 'complete' ? 'Complete!' : 'Analyzing contract...');
         },
         (data) => {
           setAnalyzing(false);
