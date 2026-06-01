@@ -41,3 +41,6 @@ requests==2.32.3
 
 # Utilities
 numpy==1.26.4
+
+# Tests
+pytest==8.2.2

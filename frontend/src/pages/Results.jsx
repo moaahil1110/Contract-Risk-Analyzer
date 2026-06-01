@@ -4,7 +4,6 @@ import { getCurrentUser } from '../lib/supabase';
 import { getAnalysis, exportReport } from '../lib/api';
 import HealthMeter from '../components/HealthMeter';
 import ClauseCard from '../components/ClauseCard';
-import RiskBadge from '../components/RiskBadge';
 import { 
   Shield, 
   ArrowLeft, 
@@ -12,6 +11,7 @@ import {
   FileText,
   Loader2,
   AlertCircle,
+  AlertTriangle,
   Filter
 } from 'lucide-react';
 
@@ -29,6 +29,8 @@ const Results = () => {
     { value: 'high', label: 'High Risk Only' },
     { value: 'medium', label: 'Medium Risk Only' },
     { value: 'low', label: 'Low Risk Only' },
+    { value: 'unknown', label: 'Unknown Only' },
+    { value: 'failed', label: 'Failed Only' },
   ];
 
   useEffect(() => {
@@ -58,11 +60,11 @@ const Results = () => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      const blob = await exportReport(contractId);
+      const { blob, filename } = await exportReport(contractId);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `risk-report-${analysis?.filename || 'contract'}.pdf`;
+      link.download = filename || `risk-report-${(analysis?.filename || 'contract').replace(/\.pdf$/i, '')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -76,8 +78,11 @@ const Results = () => {
 
   const filteredClauses = analysis?.clauses?.filter((clause) => {
     if (filter === 'all') return true;
+    if (filter === 'failed') return clause.analysis_status === 'failed';
     return clause.risk_level?.toLowerCase() === filter;
   }) || [];
+  const failedClauseCount = analysis?.health?.failed_clause_count || 0;
+  const unknownCount = analysis?.health?.unknown_count || 0;
 
   if (loading) {
     return (
@@ -164,24 +169,46 @@ const Results = () => {
               Type: {analysis?.contract_type}
             </span>
             {analysis?.health && (
-              <RiskBadge level={analysis.health.risk_counts?.high > 0 ? 'high' : analysis.health.risk_counts?.medium > 0 ? 'medium' : 'low'} />
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-gray-100 text-gray-700 border-gray-200">
+                {analysis.health.grade} - {analysis.health.label}
+              </span>
             )}
           </div>
+          {analysis?.contract_type_conflict && (
+            <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+              Selected type was {analysis.selected_contract_type}, but the document looks like {analysis.detected_contract_type}.
+              The analysis used {analysis.contract_type}.
+            </div>
+          )}
         </div>
 
         {/* Health Score Section */}
         {analysis?.health && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-8 mb-8">
+            {failedClauseCount > 0 && (
+              <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">{failedClauseCount} clauses failed analysis</p>
+                  <p className="text-sm">Failed clauses are marked Unknown and excluded from the health score.</p>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] items-center justify-items-center gap-6 lg:gap-10">
               {/* Health Meter */}
-              <div className="flex-shrink-0">
-                <HealthMeter score={analysis.health.score} size={280} />
+              <div className="w-full max-w-[280px]">
+                <HealthMeter
+                  score={analysis.health.score}
+                  grade={analysis.health.grade}
+                  label={analysis.health.label}
+                  size={280}
+                />
               </div>
 
               {/* Summary Stats */}
-              <div className="flex-1 max-w-md">
+              <div className="w-full max-w-xl">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Risk Summary</h2>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="bg-red-50 rounded-lg p-4 text-center">
                     <p className="text-3xl font-bold text-red-600">
                       {analysis.health.risk_counts?.high || 0}
@@ -200,9 +227,15 @@ const Results = () => {
                     </p>
                     <p className="text-sm text-green-700 mt-1">Low Risk</p>
                   </div>
+                  <div className="bg-gray-50 rounded-lg p-4 text-center">
+                    <p className="text-3xl font-bold text-gray-600">
+                      {unknownCount}
+                    </p>
+                    <p className="text-sm text-gray-700 mt-1">Unknown</p>
+                  </div>
                 </div>
                 <p className="text-center text-gray-500 mt-4">
-                  Total: {analysis.health.total_clauses || 0} clauses analyzed
+                  Total: {analysis.health.total_clauses || 0} clauses analyzed ({analysis.health.scored_clause_count || 0} scored)
                 </p>
               </div>
             </div>

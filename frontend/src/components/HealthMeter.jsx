@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { RadialBarChart, RadialBar, ResponsiveContainer, Cell } from 'recharts';
 
-const HealthMeter = ({ score, size = 300 }) => {
+const HealthMeter = ({ score = 0, grade = 'N/A', label = 'Unknown', size = 300 }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
 
   useEffect(() => {
     // Animate the score on load
     const duration = 1500;
     const steps = 60;
-    const increment = score / steps;
+    const safeScore = Number.isFinite(score) ? score : 0;
+    const increment = safeScore / steps;
     let current = 0;
 
     const timer = setInterval(() => {
       current += increment;
-      if (current >= score) {
-        setAnimatedScore(score);
+      if (current >= safeScore) {
+        setAnimatedScore(safeScore);
         clearInterval(timer);
       } else {
         setAnimatedScore(Math.round(current));
@@ -31,77 +31,69 @@ const HealthMeter = ({ score, size = 300 }) => {
     return '#22c55e'; // green
   };
 
-  const getGrade = (s) => {
-    if (s >= 80) return { grade: 'A', label: 'Low Risk' };
-    if (s >= 60) return { grade: 'B', label: 'Moderate Risk' };
-    if (s >= 40) return { grade: 'C', label: 'High Risk' };
-    return { grade: 'D', label: 'Critical Risk' };
-  };
-
   const color = getColor(score);
-  const { grade, label } = getGrade(score);
-
-  // Data for the radial chart
-  const data = [
-    {
-      name: 'Score',
-      value: score,
-      fill: color,
-    },
-  ];
+  const displayGrade = grade || 'N/A';
+  const displayLabel = label || 'Unknown';
+  const boundedScore = Math.max(0, Math.min(animatedScore, 100));
 
   return (
-    <div className="flex flex-col items-center" style={{ width: size, height: size * 1.2 }}>
-      <ResponsiveContainer width="100%" height="80%">
-        <RadialBarChart
-          cx="50%"
-          cy="50%"
-          innerRadius="60%"
-          outerRadius="90%"
-          barSize={20}
-          data={data}
-          startAngle={180}
-          endAngle={0}
-        >
-          <RadialBar
-            minAngle={15}
-            background
-            clockWise
-            dataKey="value"
-            cornerRadius={10}
-          >
-            <Cell fill={color} />
-          </RadialBar>
-        </RadialBarChart>
-      </ResponsiveContainer>
-
-      {/* Center text overlay */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ marginTop: '-20px' }}>
-        <div className="text-center">
-          <span
-            className="text-6xl font-bold"
-            style={{ color }}
-          >
-            {animatedScore}
-          </span>
-          <div className="text-2xl font-semibold mt-2" style={{ color }}>
-            {grade}
-          </div>
-          <div className="text-sm text-gray-500 mt-1">{label}</div>
-        </div>
-      </div>
-
-      {/* Background circle for empty portion */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div
-          className="rounded-full"
-          style={{
-            width: size * 0.55,
-            height: size * 0.55,
-            border: `8px solid #f3f4f6`,
-          }}
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: size, maxWidth: '100%', aspectRatio: '1.6 / 1' }}
+    >
+      <svg
+        viewBox="0 0 240 150"
+        className="h-full w-full overflow-visible"
+        aria-label={`Health score ${score}, grade ${displayGrade}, ${displayLabel}`}
+        role="img"
+      >
+        <path
+          d="M 30 118 A 90 90 0 0 1 210 118"
+          fill="none"
+          stroke="#e5e7eb"
+          strokeLinecap="round"
+          strokeWidth="22"
         />
-      </div>
+        <path
+          d="M 30 118 A 90 90 0 0 1 210 118"
+          fill="none"
+          pathLength="100"
+          stroke={color}
+          strokeDasharray={`${boundedScore} 100`}
+          strokeLinecap="round"
+          strokeWidth="22"
+        />
+        <text
+          x="120"
+          y="78"
+          fill={color}
+          fontSize="44"
+          fontWeight="700"
+          textAnchor="middle"
+        >
+          {animatedScore}
+        </text>
+        <text
+          x="120"
+          y="108"
+          fill={color}
+          fontSize="24"
+          fontWeight="700"
+          textAnchor="middle"
+        >
+          {displayGrade}
+        </text>
+        <text
+          x="120"
+          y="135"
+          fill="#6b7280"
+          fontSize="16"
+          fontWeight="500"
+          textAnchor="middle"
+        >
+          {displayLabel}
+        </text>
+      </svg>
     </div>
   );
 };

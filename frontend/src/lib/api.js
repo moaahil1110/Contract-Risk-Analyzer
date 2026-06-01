@@ -88,7 +88,14 @@ export const exportReport = async (contractId) => {
     throw new Error(error.detail || 'Failed to export report')
   }
 
-  return response.blob()
+  const blob = await response.blob()
+  const disposition = response.headers.get('content-disposition') || ''
+  const filenameMatch = disposition.match(/filename="?([^"]+)"?/)
+
+  return {
+    blob,
+    filename: filenameMatch?.[1],
+  }
 }
 
 // Poll until analysis is complete

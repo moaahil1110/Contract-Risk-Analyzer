@@ -44,6 +44,9 @@ async def upload_contract(
     # Get user ID from the authenticated user
     user_id = user.get("id") if user else None
     user_email = user.get("email") if user else None
+    selected_contract_type = (contract_type or "other").lower().strip()
+    if selected_contract_type not in {"nda", "employment", "vendor", "other"}:
+        selected_contract_type = "other"
     
     # Validate file type
     if not file.filename or not file.filename.lower().endswith('.pdf'):
@@ -72,7 +75,7 @@ async def upload_contract(
         db_contract = await create_contract(
             user_id=user_id,
             filename=file.filename,
-            contract_type=contract_type
+            contract_type=selected_contract_type
         )
     except Exception as e:
         logger.error(f"Failed to create contract in database: {e}")
@@ -85,7 +88,11 @@ async def upload_contract(
         "id": contract_id,
         "user_id": user_id,
         "filename": file.filename,
-        "contract_type": contract_type or "other",
+        "contract_type": selected_contract_type,
+        "selected_contract_type": selected_contract_type,
+        "detected_contract_type": None,
+        "contract_type_confidence": 0,
+        "contract_type_conflict": False,
         "status": "processing",
         "text": None,
         "clauses": None,

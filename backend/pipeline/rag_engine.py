@@ -176,13 +176,33 @@ def build_benchmark_store(benchmark_dir: str = "benchmarks") -> Dict[str, Any]:
     return result
 
 
-def retrieve_benchmarks(clause_text: str, k: int = 3) -> List[Dict[str, Any]]:
+def _format_query_results(results: Dict[str, Any]) -> List[Dict[str, Any]]:
+    benchmarks = []
+    if results and results["metadatas"] and results["metadatas"][0]:
+        ids = results.get("ids", [[]])[0]
+        for benchmark_id, metadata, distance in zip(ids, results["metadatas"][0], results["distances"][0]):
+            # Convert distance (0-2 for cosine, where 0=identical) to similarity (0-1)
+            similarity = 1 - (distance / 2) if distance <= 2 else 0
+            benchmarks.append({
+                "id": str(benchmark_id),
+                "text": str(metadata.get("text", "")),
+                "risk_notes": str(metadata.get("risk_notes", "")),
+                "standard_version": str(metadata.get("standard_version", "")),
+                "contract_type": str(metadata.get("contract_type", "")),
+                "clause_type": str(metadata.get("clause_type", "")),
+                "similarity": round(similarity, 4),
+            })
+    return benchmarks
+
+
+def retrieve_benchmarks(clause_text: str, k: int = 3, contract_type: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Retrieve top-k similar benchmarks for a given clause.
     
     Args:
         clause_text: The clause text to search against
         k: Number of similar benchmarks to retrieve (default: 3)
+        contract_type: Optional contract type filter (nda, employment, vendor)
     
     Returns:
         List of benchmark dicts with text, risk_notes, standard_version, and similarity score
@@ -192,28 +212,37 @@ def retrieve_benchmarks(clause_text: str, k: int = 3) -> List[Dict[str, Any]]:
     # Generate embedding for the clause
     query_embedding = embed_text(clause_text)
     
-    # Query ChromaDB
+    normalized_type = (contract_type or "").lower()
+    should_filter = normalized_type in {"nda", "employment", "vendor"}
+
+    if should_filter:
+        try:
+            filtered_results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=k,
+                where={"contract_type": normalized_type},
+                include=["metadatas", "distances"],
+            )
+            benchmarks = _format_query_results(filtered_results)
+            if len(benchmarks) >= k:
+                logger.info(f"Retrieved {len(benchmarks)} {normalized_type} benchmarks for clause")
+                return benchmarks
+            logger.info(
+                "Filtered retrieval returned %s/%s benchmarks for %s; falling back to broad retrieval",
+                len(benchmarks),
+                k,
+                normalized_type,
+            )
+        except Exception as e:
+            logger.warning(f"Filtered retrieval failed for {normalized_type}: {e}")
+    
+    # Broad fallback query.
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=k,
         include=["metadatas", "distances"],
     )
-    
-    benchmarks = []
-    if results and results["metadatas"] and results["metadatas"][0]:
-        for metadata, distance in zip(results["metadatas"][0], results["distances"][0]):
-            # Convert distance (0-2 for cosine, where 0=identical) to similarity (0-1)
-            similarity = 1 - (distance / 2) if distance <= 2 else 0
-            # Ensure all values are converted to strings to prevent type errors in prompt building
-            benchmark = {
-                "text": str(metadata.get("text", "")),
-                "risk_notes": str(metadata.get("risk_notes", "")),
-                "standard_version": str(metadata.get("standard_version", "")),
-                "contract_type": str(metadata.get("contract_type", "")),
-                "clause_type": str(metadata.get("clause_type", "")),
-                "similarity": round(similarity, 4),
-            }
-            benchmarks.append(benchmark)
+    benchmarks = _format_query_results(results)
     
     logger.info(f"Retrieved {len(benchmarks)} benchmarks for clause")
     return benchmarks

@@ -88,31 +88,46 @@ def calculate_health_score(clause_analyses: List[Dict[str, Any]]) -> Dict[str, A
     Returns:
         HealthScore dict with score, grade, label, and risk counts
     """
+    base_result = {
+        "risk_counts": {"high": 0, "medium": 0, "low": 0},
+        "total_clauses": len(clause_analyses),
+        "unknown_count": 0,
+        "failed_clause_count": 0,
+        "scored_clause_count": 0,
+    }
+
     if not clause_analyses:
         logger.warning("No clause analyses provided, returning default health score")
         return {
             "score": 0,
             "grade": "N/A",
             "label": "No Clauses Analyzed",
-            "risk_counts": {"high": 0, "medium": 0, "low": 0},
-            "total_clauses": 0,
+            **base_result,
         }
     
     # Count risk levels
     risk_counts = {"high": 0, "medium": 0, "low": 0}
+    unknown_count = 0
+    failed_clause_count = 0
+    scored_clause_count = 0
     
     weighted_score_sum = 0.0
     total_weight = 0.0
     
     for clause in clause_analyses:
-        risk_level = clause.get("risk_level", "medium")
+        analysis_status = clause.get("analysis_status", "success")
+        risk_level = clause.get("risk_level", "unknown")
+
+        if analysis_status == "failed":
+            failed_clause_count += 1
+
+        if analysis_status == "failed" or risk_level == "unknown" or risk_level not in risk_counts:
+            unknown_count += 1
+            continue
         
         # Count
-        if risk_level in risk_counts:
-            risk_counts[risk_level] += 1
-        else:
-            risk_counts["medium"] += 1  # Default to medium for unknown
-            risk_level = "medium"
+        risk_counts[risk_level] += 1
+        scored_clause_count += 1
         
         # Get base score (0, 60, or 100)
         base_score = RISK_SCORE_MAP.get(risk_level, 60)
@@ -122,12 +137,22 @@ def calculate_health_score(clause_analyses: List[Dict[str, Any]]) -> Dict[str, A
         weighted_score_sum += base_score * weight
         total_weight += weight
     
+    if scored_clause_count == 0:
+        logger.warning("All clauses failed or are unknown; returning incomplete health score")
+        return {
+            "score": 0,
+            "grade": "N/A",
+            "label": "Analysis Incomplete",
+            "risk_counts": risk_counts,
+            "total_clauses": len(clause_analyses),
+            "unknown_count": unknown_count,
+            "failed_clause_count": failed_clause_count,
+            "scored_clause_count": 0,
+        }
+
     # Calculate weighted average health score (0-100)
-    if total_weight == 0:
-        health_score = 0
-    else:
-        health_score = int(round(weighted_score_sum / total_weight))
-        health_score = max(0, min(100, health_score))
+    health_score = int(round(weighted_score_sum / total_weight))
+    health_score = max(0, min(100, health_score))
     
     # Determine grade and label based on blueprint thresholds
     grade, label = _get_grade_and_label(health_score)
@@ -138,10 +163,13 @@ def calculate_health_score(clause_analyses: List[Dict[str, Any]]) -> Dict[str, A
         "label": label,
         "risk_counts": risk_counts,
         "total_clauses": len(clause_analyses),
+        "unknown_count": unknown_count,
+        "failed_clause_count": failed_clause_count,
+        "scored_clause_count": scored_clause_count,
     }
     
     logger.info(f"Health score calculated: {health_score} ({grade} - {label})")
-    logger.info(f"Risk distribution: {risk_counts}")
+    logger.info(f"Risk distribution: {risk_counts}, unknown={unknown_count}, failed={failed_clause_count}")
     
     return result
 

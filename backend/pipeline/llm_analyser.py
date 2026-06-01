@@ -369,17 +369,22 @@ async def analyse_clause(
         logger.error(f"Full error in build_prompt: {traceback.format_exc()}")
         return {
             "clause_title": "Analysis Failed",
-            "risk_level": "medium",
-            "risk_score": 50,
+            "risk_level": "unknown",
+            "risk_score": None,
             "risk_reason": f"Analysis failed: {str(e)}",
             "plain_english": "This clause could not be analyzed.",
             "key_concerns": ["Prompt building error"],
             "suggested_fix": "Please retry the analysis.",
+            "analysis_status": "failed",
+            "retry_count": 0,
+            "error_message": str(e),
             "provider_used": "error",
         }
     
     # Provider chain with fallbacks
     providers = ["groq", "openrouter", "gemini", "claude"]
+    failed_attempts = 0
+    last_error = None
     
     for provider in providers:
         logger.info(f"Trying provider: {provider}")
@@ -392,6 +397,8 @@ async def analyse_clause(
                 
                 if not response_text:
                     logger.warning(f"{provider} returned empty response (attempt {attempt + 1})")
+                    failed_attempts += 1
+                    last_error = f"{provider} returned empty response"
                     continue
                 
                 # Parse and validate
@@ -400,25 +407,35 @@ async def analyse_clause(
                 if parsed and validate_response(parsed):
                     # Add metadata
                     parsed["provider_used"] = provider
+                    parsed["analysis_status"] = "retried" if failed_attempts > 0 else "success"
+                    parsed["retry_count"] = failed_attempts
+                    parsed["error_message"] = None
                     logger.info(f"Successfully analyzed with {provider}")
                     return parsed
                 else:
                     logger.warning(f"{provider} returned invalid response (attempt {attempt + 1})")
+                    failed_attempts += 1
+                    last_error = f"{provider} returned invalid response"
                     
             except Exception as e:
                 logger.error(f"Full error in {provider}: {traceback.format_exc()}")
+                failed_attempts += 1
+                last_error = str(e)
                 continue
     
     # All providers failed - return fallback response
     logger.error("All LLM providers failed, returning fallback response")
     return {
         "clause_title": "Analysis Failed",
-        "risk_level": "medium",
-        "risk_score": 50,
+        "risk_level": "unknown",
+        "risk_score": None,
         "risk_reason": "Unable to analyze due to LLM service unavailability. Please try again later.",
         "plain_english": "This clause could not be analyzed at this time.",
         "key_concerns": ["Analysis service temporarily unavailable"],
         "suggested_fix": "Please retry the analysis.",
+        "analysis_status": "failed",
+        "retry_count": failed_attempts,
+        "error_message": last_error or "All LLM providers failed",
         "provider_used": "fallback",
     }
 

@@ -42,6 +42,9 @@ async def create_contract(user_id: Optional[str], filename: str, contract_type: 
             "user_id": user_id,
             "filename": filename,
             "contract_type": contract_type or "other",
+            "selected_contract_type": contract_type or "other",
+            "detected_contract_type": contract_type or "other",
+            "contract_type_confidence": 1.0 if contract_type else 0.0,
             "status": "processing",
             "uploaded_at": datetime.utcnow().isoformat(),
         }
@@ -57,7 +60,41 @@ async def create_contract(user_id: Optional[str], filename: str, contract_type: 
             
     except Exception as e:
         logger.error(f"Error creating contract: {e}")
-        return None
+            return None
+
+
+async def update_contract_type_metadata(contract_id: str, type_metadata: Dict[str, Any]) -> bool:
+    """
+    Persist selected, detected, and effective contract type metadata.
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping update_contract_type_metadata")
+        return False
+
+    client = get_supabase_client()
+    if not client:
+        return False
+
+    try:
+        update_data = {
+            "contract_type": type_metadata.get("contract_type", "other"),
+            "selected_contract_type": type_metadata.get("selected_contract_type", "other"),
+            "detected_contract_type": type_metadata.get("detected_contract_type", "other"),
+            "contract_type_confidence": type_metadata.get("contract_type_confidence", 0),
+        }
+
+        result = client.table("contracts").update(update_data).eq("id", contract_id).execute()
+
+        if result.data:
+            logger.info(f"Updated contract {contract_id} type metadata")
+            return True
+
+        logger.error(f"Failed to update contract {contract_id} type metadata")
+        return False
+
+    except Exception as e:
+        logger.error(f"Error updating contract type metadata: {e}")
+        return False
 
 
 async def update_contract_status(contract_id: str, status: str) -> bool:
@@ -135,6 +172,9 @@ async def update_contract_results(
             "high_risk_count": risk_counts.get("high", 0),
             "medium_risk_count": risk_counts.get("medium", 0),
             "low_risk_count": risk_counts.get("low", 0),
+            "unknown_risk_count": health_data.get("unknown_count", 0),
+            "failed_clause_count": health_data.get("failed_clause_count", 0),
+            "scored_clause_count": health_data.get("scored_clause_count", 0),
             "completed_at": datetime.utcnow().isoformat(),
         }
         
@@ -295,12 +335,17 @@ async def save_clause_analysis(
             "clause_index": clause_index,
             "clause_title": clause_data.get("clause_title", f"Clause {clause_index + 1}"),
             "original_text": clause_data.get("original_text", ""),
-            "risk_level": clause_data.get("risk_level", "medium"),
-            "risk_score": clause_data.get("risk_score", 50),
+            "risk_level": clause_data.get("risk_level", "unknown"),
+            "risk_score": clause_data.get("risk_score"),
             "risk_reason": clause_data.get("risk_reason", ""),
             "plain_english": clause_data.get("plain_english", ""),
             "key_concerns": key_concerns,
             "suggested_fix": clause_data.get("suggested_fix", ""),
+            "analysis_status": clause_data.get("analysis_status", "success"),
+            "retry_count": clause_data.get("retry_count", 0),
+            "error_message": clause_data.get("error_message"),
+            "provider_used": clause_data.get("provider_used"),
+            "retrieved_benchmarks": clause_data.get("retrieved_benchmarks", []),
             "created_at": datetime.utcnow().isoformat(),
         }
         
@@ -356,12 +401,17 @@ async def save_clause_analyses_batch(
                 "clause_index": idx,
                 "clause_title": clause.get("clause_title", f"Clause {idx + 1}"),
                 "original_text": clause.get("original_text", ""),
-                "risk_level": clause.get("risk_level", "medium"),
-                "risk_score": clause.get("risk_score", 50),
+                "risk_level": clause.get("risk_level", "unknown"),
+                "risk_score": clause.get("risk_score"),
                 "risk_reason": clause.get("risk_reason", ""),
                 "plain_english": clause.get("plain_english", ""),
                 "key_concerns": key_concerns,
                 "suggested_fix": clause.get("suggested_fix", ""),
+                "analysis_status": clause.get("analysis_status", "success"),
+                "retry_count": clause.get("retry_count", 0),
+                "error_message": clause.get("error_message"),
+                "provider_used": clause.get("provider_used"),
+                "retrieved_benchmarks": clause.get("retrieved_benchmarks", []),
                 "created_at": datetime.utcnow().isoformat(),
             })
         
