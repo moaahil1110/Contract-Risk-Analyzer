@@ -1,0 +1,17 @@
+1. DEFINITIONS
+"Confidential Information" means any and all non-public information disclosed by either party during the course of business discussions.
+
+2. TERM
+This Agreement shall commence on the Effective Date and continue for a period of two (2) years.
+
+3. NON-DISCLOSURE
+Each party agrees to hold all Confidential Information in strict confidence and not disclose to any third parties.
+
+4. USE OF INFORMATION
+Receiving Party shall not use Confidential Information for any purpose other than evaluating the potential business relationship.
+
+5. RETURN OF INFORMATION
+Upon termination of this Agreement, Receiving Party shall promptly return or destroy all Confidential Information.
+
+6. REMEDIES
+Each party acknowledges that breach of this Agreement may cause irreparable harm and the other party is entitled to seek injunctive relief.

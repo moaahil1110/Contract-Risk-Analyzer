@@ -1,0 +1,62 @@
+[
+  {
+    "type": "at_will_employment",
+    "text": "Your employment with the Company is at-will, meaning that either you or the Company may terminate the employment relationship at any time, with or without cause, and with or without notice.",
+    "risk_notes": "Standard at-will clause. Common in US employment. Low risk for company, higher for employee. Understand implications.",
+    "standard_version": "Standard Employment"
+  },
+  {
+    "type": "ip_assignment",
+    "text": "Employee hereby assigns to Company all right, title, and interest in and to any and all inventions, discoveries, and improvements conceived or developed by Employee during the term of employment using Company's resources or relating to Company's business.",
+    "risk_notes": "Standard IP assignment. Reasonable if limited to company time/resources and company's business. Check scope.",
+    "standard_version": "Standard Employment"
+  },
+  {
+    "type": "ip_assignment",
+    "text": "Employee hereby assigns to Company all inventions, ideas, and developments conceived during employment, including those developed during personal time and using personal equipment, without regard to the relation to Company's business.",
+    "risk_notes": "HIGH RISK - captures personal time inventions and side projects. Unfair and overly broad.",
+    "standard_version": "Overly Broad"
+  },
+  {
+    "type": "non_solicit",
+    "text": "For a period of one (1) year following termination, Employee agrees not to solicit or attempt to solicit any customers, clients, or employees of the Company.",
+    "risk_notes": "Standard non-solicitation. One year is reasonable. Ensure scope is limited to direct relationships.",
+    "standard_version": "Standard Employment"
+  },
+  {
+    "type": "non_compete",
+    "text": "For a period of six (6) months following termination, Employee agrees not to engage in any business that directly competes with the Company's core business within a fifty (50) mile radius of any Company office.",
+    "risk_notes": "Reasonable non-compete: short duration (6 months), narrow scope (direct competition), limited geography. Check local law - non-competes are banned or restricted in some jurisdictions.",
+    "standard_version": "Reasonable Non-Compete"
+  },
+  {
+    "type": "non_compete",
+    "text": "For a period of two (2) years following termination, Employee shall not work for any company engaged in any business similar to the Company's business anywhere in the world.",
+    "risk_notes": "HIGH RISK - overly broad: 2 years, global scope, undefined 'similar business'. May be unenforceable but creates legal uncertainty.",
+    "standard_version": "Overly Broad"
+  },
+  {
+    "type": "salary",
+    "text": "Employee shall be paid an annual base salary of $[AMOUNT], payable semi-monthly in accordance with the Company's standard payroll practices, subject to applicable tax withholdings.",
+    "risk_notes": "Standard salary clause. Ensure the amount matches your offer letter. Check payment frequency.",
+    "standard_version": "Standard Employment"
+  },
+  {
+    "type": "benefits",
+    "text": "Employee shall be eligible to participate in the employee benefit plans maintained by the Company, subject to the terms and conditions of such plans.",
+    "risk_notes": "Standard benefits clause. Review specific plan documents for actual coverage details. Low risk.",
+    "standard_version": "Standard Employment"
+  },
+  {
+    "type": "termination_notice",
+    "text": "Either party may terminate this Agreement by providing thirty (30) days written notice to the other party.",
+    "risk_notes": "Notice period requirement. Reasonable for both sides. Check if employment is at-will or contractual.",
+    "standard_version": "Standard Employment"
+  },
+  {
+    "type": "severance",
+    "text": "Upon termination without cause, Employee shall receive severance equal to two (2) weeks of base salary for each year of completed service, up to a maximum of twelve (12) weeks.",
+    "risk_notes": "Reasonable severance formula. Benefits employee. Ensure 'without cause' is clearly defined.",
+    "standard_version": "Favorable to Employee"
+  }
+]

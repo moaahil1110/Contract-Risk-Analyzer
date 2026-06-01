@@ -1,0 +1,68 @@
+[
+  {
+    "type": "payment_terms",
+    "text": "Payment shall be due within thirty (30) days of the invoice date. Overdue amounts shall accrue interest at a rate of 1.5% per month or the maximum rate permitted by law, whichever is less.",
+    "risk_notes": "Standard payment terms. 30 days is industry standard. 1.5% monthly interest (18% annual) is reasonable for late payments.",
+    "standard_version": "Standard Vendor"
+  },
+  {
+    "type": "payment_terms",
+    "text": "Payment terms are Net 90 from date of invoice. Late payments subject to interest at 5% per month.",
+    "risk_notes": "HIGH RISK for vendor - 90 days is very slow payment, 5% monthly (60% annual) interest is excessive. Negotiate shorter terms.",
+    "standard_version": "Unfavorable to Vendor"
+  },
+  {
+    "type": "liability_cap",
+    "text": "Each party's total aggregate liability shall not exceed the total amount paid or payable under this Agreement in the twelve (12) months preceding the claim.",
+    "risk_notes": "Standard mutual liability cap. Reasonable limitation for both sides. Low risk.",
+    "standard_version": "Standard Vendor"
+  },
+  {
+    "type": "liability_cap",
+    "text": "Vendor's total liability shall not exceed $10,000 regardless of the contract value or damages incurred.",
+    "risk_notes": "HIGH RISK for vendor - low cap that doesn't scale with contract value or risk. Insufficient for high-value projects.",
+    "standard_version": "Unfavorable to Vendor"
+  },
+  {
+    "type": "indemnification",
+    "text": "Vendor shall indemnify and hold harmless Customer against any third-party claims arising from Vendor's breach of this Agreement or Vendor's negligence or willful misconduct.",
+    "risk_notes": "Standard indemnification for vendor's own actions. Fair and reasonable. Ensure insurance coverage exists.",
+    "standard_version": "Standard Vendor"
+  },
+  {
+    "type": "indemnification",
+    "text": "Vendor shall indemnify Customer against all claims, damages, liabilities, and expenses of any kind arising out of or relating to this Agreement, regardless of cause or fault.",
+    "risk_notes": "HIGH RISK - 'regardless of cause or fault' makes vendor liable even for customer-caused issues. Unfair and overly broad.",
+    "standard_version": "Unfavorable to Vendor"
+  },
+  {
+    "type": "ip_ownership",
+    "text": "All work product and deliverables created by Vendor specifically for Customer under this Agreement shall be owned by Customer upon full payment.",
+    "risk_notes": "Standard work-for-hire/custom deliverables clause. Reasonable if deliverables are clearly defined and payment is received.",
+    "standard_version": "Standard Vendor"
+  },
+  {
+    "type": "ip_ownership",
+    "text": "All intellectual property rights in any materials, methods, or processes used by Vendor, including pre-existing tools and methodologies, shall become the exclusive property of Customer.",
+    "risk_notes": "HIGH RISK - vendor's pre-existing IP and tools should not transfer. Limits vendor's ability to work with other clients.",
+    "standard_version": "Unfavorable to Vendor"
+  },
+  {
+    "type": "termination",
+    "text": "Either party may terminate this Agreement for convenience upon ninety (90) days written notice. Either party may terminate for material breach upon thirty (30) days written notice if uncured.",
+    "risk_notes": "Standard termination clause. 90-day convenience notice protects both sides. Breach termination with cure period is reasonable.",
+    "standard_version": "Standard Vendor"
+  },
+  {
+    "type": "warranty",
+    "text": "Vendor warrants that the services shall be performed in a professional and workmanlike manner in accordance with industry standards.",
+    "risk_notes": "Standard performance warranty. Limited to quality standards. Reasonable.",
+    "standard_version": "Standard Vendor"
+  },
+  {
+    "type": "warranty",
+    "text": "Vendor warrants that the deliverables will meet all of Customer's requirements, be error-free, and suitable for any purpose Customer intends, whether stated or unstated.",
+    "risk_notes": "HIGH RISK - unlimited warranty covering unstated requirements and any purpose. Impossible to meet, creates unlimited liability.",
+    "standard_version": "Unfavorable to Vendor"
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "type": "definition",
+    "text": "'Confidential Information' means any and all non-public, proprietary, confidential or trade secret information of the Disclosing Party, including but not limited to technical data, know-how, research, product plans, software code, software documentation, customer lists, pricing information, and business strategies.",
+    "risk_notes": "Standard broad definition. Low risk if mutual. High risk if one-sided covers all information regardless of confidentiality markings.",
+    "standard_version": "Mutual NDA"
+  },
+  {
+    "type": "definition",
+    "text": "'Confidential Information' means any information disclosed by the Disclosing Party to the Receiving Party, either orally or in writing, that is designated as confidential at the time of disclosure or that reasonably should be understood to be confidential.",
+    "risk_notes": "Balanced definition requiring marking or obvious confidentiality. Reduces ambiguity but may miss unmarked sensitive info.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "exclusions",
+    "text": "Confidential Information shall not include information that: (i) is or becomes publicly available through no breach of this Agreement; (ii) was rightfully in Receiving Party's possession prior to disclosure; (iii) is rightfully disclosed to Receiving Party by a third party without restriction; or (iv) is independently developed by Receiving Party without use of Confidential Information.",
+    "risk_notes": "Standard exclusions. Fair and balanced. Ensure independent development has provable documentation.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "obligations",
+    "text": "Receiving Party agrees to hold all Confidential Information in strict confidence and not disclose to any third parties except to those employees and contractors who have a need to know and are bound by confidentiality obligations.",
+    "risk_notes": "Standard obligation clause. Reasonable. Low risk.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "obligations",
+    "text": "Receiving Party shall not use Confidential Information for any purpose other than evaluating a potential business relationship with the Disclosing Party.",
+    "risk_notes": "Purpose limitation clause. Protects disclosing party. Should have time limit tied to NDA term.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "term",
+    "text": "This Agreement shall remain in effect for a period of two (2) years from the Effective Date.",
+    "risk_notes": "Fixed term NDA. Reasonable. Consider if survival period for trade secrets is needed.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "return",
+    "text": "Upon termination of this Agreement, Receiving Party shall promptly return or destroy all Confidential Information and certify such return or destruction in writing upon request.",
+    "risk_notes": "Standard return/destruction clause. Allow keeping one copy for legal compliance purposes.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "remedies",
+    "text": "Receiving Party acknowledges that breach of this Agreement may cause irreparable harm and Disclosing Party is entitled to seek injunctive relief in addition to all other remedies.",
+    "risk_notes": "Standard injunctive relief clause. Typical for NDAs. Low risk.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "no_license",
+    "text": "Nothing in this Agreement grants any license or rights to any intellectual property of the Disclosing Party.",
+    "risk_notes": "Standard protection clause. Ensures no IP transfer through disclosure. Low risk.",
+    "standard_version": "Standard NDA"
+  },
+  {
+    "type": "definition",
+    "text": "'Confidential Information' means any information relating to the business, products, services, customers, suppliers, or financial matters of the Company, whether written, oral, or electronic, and regardless of whether marked as confidential.",
+    "risk_notes": "OVERBROAD - captures all information regardless of actual confidentiality. High risk for receiving party.",
+    "standard_version": "Overly Broad"
+  }
+]
