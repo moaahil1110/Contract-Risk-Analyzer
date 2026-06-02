@@ -17,12 +17,12 @@ from api.middleware.auth import require_user, validate_security_config_at_startu
 from main import app
 
 
-_TEST_USER = {"id": "test-user-1", "email": "test@example.com"}
-_OTHER_USER = {"id": "test-user-2", "email": "other@example.com"}
+_TEST_USER = {"id": "11111111-1111-4111-8111-111111111111", "email": "test@example.com"}
+_OTHER_USER = {"id": "22222222-2222-4222-8222-222222222222", "email": "other@example.com"}
 
 
 @contextmanager
-def _authenticated_as(user_id="test-user-1", email="test@example.com"):
+def _authenticated_as(user_id=_TEST_USER["id"], email="test@example.com"):
     app.dependency_overrides[require_user] = lambda: {"id": user_id, "email": email}
     try:
         yield
@@ -168,7 +168,7 @@ def test_missing_jwt_secret_in_production_fails_closed(monkeypatch):
     assert "SUPABASE_URL" in str(exc_info.value)
 
 
-def _jwt_payload(user_id="test-user-1", email="test@example.com"):
+def _jwt_payload(user_id=_TEST_USER["id"], email="test@example.com"):
     now = datetime.now(timezone.utc)
     return {
         "sub": user_id,

@@ -81,6 +81,30 @@ export const startAnalysis = async (contractId) => {
   return response.json()
 }
 
+export const rerunAnalysis = async (contractId) => {
+  const headers = await getAuthHeaders()
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/analyse/${contractId}/rerun`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
+    if (response.status === 404) {
+      throw new Error('Contract not found or you do not have access.')
+    }
+    throw new Error(error.detail || 'Failed to rerun analysis')
+  }
+
+  return response.json()
+}
+
 export const getAnalysis = async (contractId) => {
   const headers = await getAuthHeaders()
   const response = await fetchWithTimeout(`${API_URL}/api/v1/analyse/${contractId}`, {
@@ -121,11 +145,20 @@ export const getAnalysisStatus = async (contractId) => {
   return response.json()
 }
 
-export const getHistory = async () => {
+export const getHistory = async (params = {}) => {
   const headers = await getAuthHeaders()
-  const response = await fetchWithTimeout(`${API_URL}/api/v1/history`, {
-    headers,
-  })
+  const query = new URLSearchParams()
+  if (params.search) query.append('search', params.search)
+  if (params.status) query.append('status', params.status)
+  if (params.contract_type) query.append('contract_type', params.contract_type)
+  if (params.grade) query.append('grade', params.grade)
+  if (params.limit) query.append('limit', String(params.limit))
+  if (params.offset !== undefined) query.append('offset', String(params.offset))
+
+  const qs = query.toString()
+  const url = `${API_URL}/api/v1/history${qs ? `?${qs}` : ''}`
+
+  const response = await fetchWithTimeout(url, { headers })
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
@@ -136,6 +169,30 @@ export const getHistory = async () => {
   }
 
   return response.json()
+}
+
+export const deleteContract = async (contractId) => {
+  const headers = await getAuthHeaders()
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/history/${contractId}`, {
+    method: 'DELETE',
+    headers,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
+    if (response.status === 404) {
+      throw new Error('Contract not found or you do not have access.')
+    }
+    if (response.status === 409) {
+      throw new Error(error.detail || 'Cannot delete while analysis is active.')
+    }
+    throw new Error(error.detail || 'Failed to delete contract')
+  }
+
+  return true
 }
 
 export const exportReport = async (contractId) => {

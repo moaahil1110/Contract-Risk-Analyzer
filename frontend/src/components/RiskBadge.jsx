@@ -15,7 +15,7 @@ const RiskBadge = ({ level, className = '' }) => {
     unknown: 'Unknown',
   };
 
-  const normalizedLevel = level?.toLowerCase() || 'medium';
+  const normalizedLevel = level?.toLowerCase() || 'unknown';
   const safeLevel = styles[normalizedLevel] ? normalizedLevel : 'unknown';
 
   return (

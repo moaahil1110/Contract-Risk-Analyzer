@@ -6,17 +6,20 @@ Priority 4: All endpoints require authentication and enforce contract ownership.
 
 import logging
 import uuid
+from datetime import datetime
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends
 
-from api.routes.upload import contract_store
+from api.routes.upload import contract_store, _can_persist_user_to_supabase
 from api.middleware.auth import require_user, DEV_MODE
 from core.status import CONTRACT_STATUS_COMPLETE, CONTRACT_STATUS_FAILED, CONTRACT_STATUS_QUEUED
 from db.queries import (
     create_analysis_job,
+    delete_clauses_for_contract,
     get_contract_for_user,
     get_contract_with_clauses_for_user,
     get_active_analysis_job_for_contract,
+    rerun_contract,
     update_contract_progress,
 )
 from db.supabase_client import is_supabase_configured
@@ -30,6 +33,14 @@ router = APIRouter()
 
 # In-memory store for analysis results (fallback when Supabase is not configured)
 analysis_results: Dict[str, Any] = {}
+
+
+def _require_supabase_persistable_user(user_id: Optional[str]) -> None:
+    if is_supabase_configured() and not _can_persist_user_to_supabase(user_id):
+        raise HTTPException(
+            status_code=401,
+            detail="Please sign in before analysing contracts.",
+        )
 
 
 def _progress_response(contract_id: str, record: Dict[str, Any], job: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -57,14 +68,14 @@ def _check_contract_ownership(contract_id: str, user_id: str) -> Optional[Dict[s
     record = contract_store.get(contract_id)
     if not record:
         return None
+    if record.get("deleted_at"):
+        return None
     # In dev mode, allow access if user_id matches or if no user_id was stored
     if DEV_MODE and record.get("user_id") is None:
         return record
     if record.get("user_id") == user_id:
         return record
     return None
-
-
 @router.post("/analyse/{contract_id}")
 async def start_analysis(
     contract_id: str,
@@ -76,6 +87,7 @@ async def start_analysis(
     Requires authentication and ownership of the contract.
     """
     user_id = user.get("id")
+    _require_supabase_persistable_user(user_id)
     record = None
 
     # Verify ownership via database first
@@ -161,6 +173,114 @@ async def start_analysis(
         "status": CONTRACT_STATUS_QUEUED,
         "message": "Analysis queued",
     }
+@router.post("/analyse/{contract_id}/rerun")
+async def rerun_analysis(
+    contract_id: str,
+    user: Dict[str, Any] = Depends(require_user),
+):
+    """
+    Re-run analysis for a completed or failed contract.
+    Clears old clause analyses and summary fields, resets status, and enqueues a fresh job.
+    Requires authentication and ownership.
+    Allowed only for complete and failed contracts.
+    Returns the same queue metadata shape as POST /analyse/{contract_id}.
+    """
+    user_id = user.get("id")
+    _require_supabase_persistable_user(user_id)
+    record = None
+    # Verify ownership via database first
+    if is_supabase_configured():
+        try:
+            record = await get_contract_for_user(contract_id, user_id)
+        except Exception:
+            if not DEV_MODE:
+                raise HTTPException(status_code=503, detail="Database service unavailable")
+        if not record and not DEV_MODE:
+            raise HTTPException(status_code=404, detail="Contract not found")
+        if not record and DEV_MODE:
+            record = _check_contract_ownership(contract_id, user_id)
+    else:
+        record = _check_contract_ownership(contract_id, user_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if record.get("deleted_at"):
+        raise HTTPException(status_code=404, detail="Contract not found")
+    status = record.get("status")
+    if status not in {CONTRACT_STATUS_COMPLETE, CONTRACT_STATUS_FAILED}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Rerun is not allowed for contracts with status '{status}'",
+        )
+    # Check active job
+    try:
+        active_job = await get_active_analysis_job_for_contract(contract_id)
+    except Exception:
+        if not DEV_MODE:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+        active_job = None
+    if not active_job:
+        active_job = get_local_active_job(contract_id)
+    if active_job:
+        raise HTTPException(
+            status_code=409,
+            detail="Analysis is already queued or running",
+        )
+    # Clear old results
+    if contract_id in analysis_results:
+        del analysis_results[contract_id]
+    if is_supabase_configured():
+        try:
+            await delete_clauses_for_contract(contract_id)
+            await rerun_contract(contract_id, user_id)
+        except Exception:
+            if not DEV_MODE:
+                raise HTTPException(status_code=503, detail="Database service unavailable")
+    # Update in-memory store
+    if contract_id in contract_store:
+        store_record = contract_store[contract_id]
+        store_record["status"] = CONTRACT_STATUS_QUEUED
+        store_record["progress_percent"] = 0
+        store_record["status_message"] = "Analysis queued"
+        store_record["error_message"] = None
+        store_record["health"] = None
+        store_record["analysis"] = []
+        store_record["rerun_count"] = store_record.get("rerun_count", 0) + 1
+        store_record["last_rerun_at"] = datetime.utcnow().isoformat()
+    task_id = str(uuid.uuid4())
+    job = await create_analysis_job(contract_id, task_id)
+    if not job:
+        job = create_local_job(contract_id, task_id)
+    await update_contract_progress(
+        contract_id,
+        CONTRACT_STATUS_QUEUED,
+        0,
+        "Analysis queued",
+    )
+    try:
+        task_id = enqueue_contract_analysis(contract_id, task_id)
+    except Exception as exc:
+        await update_contract_progress(
+            contract_id,
+            CONTRACT_STATUS_FAILED,
+            100,
+            "Failed to enqueue analysis",
+            str(exc),
+        )
+        if contract_id in contract_store:
+            contract_store[contract_id].update({
+                "status": CONTRACT_STATUS_FAILED,
+                "progress_percent": 100,
+                "status_message": "Failed to enqueue analysis",
+                "error_message": str(exc),
+            })
+        raise HTTPException(status_code=503, detail=f"Failed to enqueue analysis: {str(exc)}")
+    return {
+        "contract_id": contract_id,
+        "job_id": job.get("id") if job else None,
+        "task_id": task_id,
+        "status": CONTRACT_STATUS_QUEUED,
+        "message": "Analysis queued",
+    }
 
 
 @router.get("/analyse/{contract_id}")
@@ -173,6 +293,7 @@ async def get_analysis(
     Requires authentication and ownership of the contract.
     """
     user_id = user.get("id")
+    _require_supabase_persistable_user(user_id)
 
     # Try database first with ownership check
     if is_supabase_configured():
@@ -290,6 +411,7 @@ async def get_analysis_status(
     Requires authentication and ownership of the contract.
     """
     user_id = user.get("id")
+    _require_supabase_persistable_user(user_id)
 
     if is_supabase_configured():
         try:
@@ -324,6 +446,7 @@ async def get_clause_detail(
     Requires authentication and ownership of the contract.
     """
     user_id = user.get("id")
+    _require_supabase_persistable_user(user_id)
 
     # Check in-memory results with ownership
     if contract_id in analysis_results:

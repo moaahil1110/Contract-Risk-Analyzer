@@ -20,15 +20,48 @@ const ClauseCard = ({ clause }) => {
     risk_rule_applied,
     evidence_summary,
     benchmark_alignment,
+    provider_used,
+    retry_count,
   } = clause;
+
   const isFailed = analysis_status === 'failed';
-  const alignmentStyles = {
+
+  const riskChipClass = {
+    high: 'bg-red-50 text-red-700 border-red-200',
+    medium: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    low: 'bg-green-50 text-green-700 border-green-200',
+    unknown: 'bg-gray-100 text-gray-700 border-gray-200',
+  };
+
+  const statusChipClass = {
+    success: 'bg-blue-50 text-blue-700 border-blue-200',
+    retried: 'bg-orange-50 text-orange-700 border-orange-200',
+    failed: 'bg-red-50 text-red-700 border-red-200',
+  };
+
+  const riskLabels = {
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+    unknown: 'Unknown',
+  };
+
+  const statusLabels = {
+    success: 'Success',
+    retried: 'Retried',
+    failed: 'Failed',
+  };
+
+  const alignmentChipClass = {
     strong: 'bg-green-50 text-green-700 border-green-200',
     partial: 'bg-blue-50 text-blue-700 border-blue-200',
     weak: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    none: 'bg-gray-50 text-gray-700 border-gray-200',
+    none: 'bg-gray-100 text-gray-600 border-gray-200',
   };
-  const safeAlignment = alignmentStyles[benchmark_alignment] ? benchmark_alignment : 'none';
+
+  const safeRisk = riskChipClass[risk_level] ? risk_level : 'unknown';
+  const safeStatus = statusChipClass[analysis_status] ? analysis_status : 'success';
+  const safeAlignment = alignmentChipClass[benchmark_alignment] ? benchmark_alignment : 'none';
 
   return (
     <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -37,21 +70,34 @@ const ClauseCard = ({ clause }) => {
         className="p-4 flex items-center justify-between cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <RiskBadge level={risk_level} />
-          {isFailed && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-red-50 text-red-700 border-red-200">
-              Analysis Failed
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${riskChipClass[safeRisk]}`}>
+              {riskLabels[safeRisk]}
             </span>
-          )}
-          {!isFailed && benchmark_alignment && (
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${alignmentStyles[safeAlignment]}`}>
-              RAG {safeAlignment}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusChipClass[safeStatus]}`}>
+              {statusLabels[safeStatus]}
             </span>
-          )}
-          <h3 className="font-semibold text-gray-900">{clause_title}</h3>
+            {provider_used && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-50 text-gray-600 border-gray-200">
+                {provider_used}
+              </span>
+            )}
+            {typeof retry_count === 'number' && retry_count > 0 && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-orange-50 text-orange-700 border-orange-200">
+                Retries: {retry_count}
+              </span>
+            )}
+            {!isFailed && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${alignmentChipClass[safeAlignment]}`}>
+                RAG {safeAlignment}
+              </span>
+            )}
+          </div>
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{clause_title}</h3>
         </div>
-        <button className="p-1 hover:bg-gray-200 rounded-full transition-colors">
+        <button className="p-1 hover:bg-gray-200 rounded-full transition-colors flex-shrink-0">
           {isExpanded ? (
             <ChevronUp className="w-5 h-5 text-gray-500" />
           ) : (
@@ -110,6 +156,7 @@ const ClauseCard = ({ clause }) => {
             </div>
           )}
 
+          {/* RAG Evidence */}
           {(risk_rule_applied || evidence_summary || cited_benchmark_ids?.length > 0) && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">RAG Evidence</h4>
@@ -146,6 +193,7 @@ const ClauseCard = ({ clause }) => {
             </div>
           )}
 
+          {/* Retrieved Benchmarks */}
           {retrieved_benchmarks && retrieved_benchmarks.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Retrieved Benchmarks</h4>
@@ -153,7 +201,7 @@ const ClauseCard = ({ clause }) => {
                 {retrieved_benchmarks.slice(0, 3).map((benchmark, index) => (
                   <div key={benchmark.id || index} className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                     <p className="text-xs font-medium text-blue-900">
-                      {benchmark.benchmark_id || benchmark.id || `Benchmark ${index + 1}`} - {benchmark.contract_type || 'unknown'} / {benchmark.clause_type || 'unknown'} / {benchmark.risk_level || 'unknown'} - similarity {benchmark.similarity ?? 'n/a'}
+                      {benchmark.benchmark_id || benchmark.id || `Benchmark ${index + 1}`} — {benchmark.contract_type || 'unknown'} / {benchmark.clause_type || 'unknown'} / {benchmark.risk_level || 'unknown'} — similarity {benchmark.similarity ?? 'n/a'}
                     </p>
                     {(benchmark.risk_rule || benchmark.risk_notes) && (
                       <p className="text-xs text-blue-800 mt-1">{benchmark.risk_rule || benchmark.risk_notes}</p>

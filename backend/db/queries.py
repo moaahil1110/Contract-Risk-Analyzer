@@ -437,6 +437,7 @@ async def get_contract_for_user(contract_id: str, user_id: str) -> Optional[Dict
             .select("*")
             .eq("id", contract_id)
             .eq("user_id", user_id)
+            .is_("deleted_at", "null")
             .limit(1)
             .execute()
         )
@@ -473,6 +474,7 @@ async def get_contract_with_clauses_for_user(contract_id: str, user_id: str) -> 
             .select("*")
             .eq("id", contract_id)
             .eq("user_id", user_id)
+            .is_("deleted_at", "null")
             .limit(1)
             .execute()
         )
@@ -607,32 +609,172 @@ async def get_contract_with_clauses(contract_id: str) -> Optional[Dict[str, Any]
         return None
 
 
-async def get_user_contracts(user_id: str) -> List[Dict[str, Any]]:
+async def get_user_contracts(
+    user_id: str,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    contract_type: Optional[str] = None,
+    grade: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """
-    Get all contracts for a user.
-    
+    Get all non-deleted contracts for a user with optional filters.
     Args:
         user_id: The user's UUID
-    
+        search: Optional filename substring filter
+        status: Optional status filter
+        contract_type: Optional contract type filter
+        grade: Optional health grade filter
     Returns:
         List of contract records
     """
     if not is_supabase_configured():
         logger.debug("Supabase not configured, skipping get_user_contracts")
         return []
-    
     client = get_supabase_client()
     if not client:
         return []
-    
     try:
-        result = client.table("contracts").select("*").eq("user_id", user_id).order("uploaded_at", desc=True).execute()
-        
+        query = (
+            client.table("contracts")
+            .select("*")
+            .eq("user_id", user_id)
+            .is_("deleted_at", "null")
+            .order("uploaded_at", desc=True)
+        )
+        if status:
+            query = query.eq("status", status)
+        if contract_type:
+            query = query.eq("contract_type", contract_type)
+        if grade:
+            query = query.eq("health_grade", grade)
+        if search:
+            query = query.ilike("filename", f"%{search}%")
+        result = query.execute()
         return result.data if result.data else []
-        
     except Exception as e:
         logger.error(f"Error getting user contracts: {e}")
-        return []
+        raise
+
+
+async def soft_delete_contract(contract_id: str, user_id: str) -> bool:
+    """
+    Soft delete a contract by setting deleted_at.
+    Requires ownership verification before calling.
+    Args:
+        contract_id: The contract UUID
+        user_id: The user's UUID
+    Returns:
+        True if successful, False otherwise
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping soft_delete_contract")
+        return False
+    client = get_supabase_client()
+    if not client:
+        return False
+    try:
+        result = (
+            client.table("contracts")
+            .update({"deleted_at": datetime.utcnow().isoformat()})
+            .eq("id", contract_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        return bool(result.data)
+    except Exception as e:
+        logger.error(f"Error soft deleting contract: {e}")
+        return False
+
+
+async def rerun_contract(contract_id: str, user_id: str) -> bool:
+    """
+    Reset a contract for rerun by clearing old results and resetting status.
+    Requires ownership verification before calling.
+    Args:
+        contract_id: The contract UUID
+        user_id: The user's UUID
+    Returns:
+        True if successful, False otherwise
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping rerun_contract")
+        return False
+    client = get_supabase_client()
+    if not client:
+        return False
+    try:
+        now = datetime.utcnow().isoformat()
+        existing = (
+            client.table("contracts")
+            .select("rerun_count")
+            .eq("id", contract_id)
+            .eq("user_id", user_id)
+            .is_("deleted_at", "null")
+            .limit(1)
+            .execute()
+        )
+        if not existing.data:
+            return False
+
+        current_rerun_count = existing.data[0].get("rerun_count") or 0
+        result = (
+            client.table("contracts")
+            .update({
+                "status": "queued",
+                "progress_percent": 0,
+                "status_message": "Analysis queued",
+                "error_message": None,
+                "health_score": None,
+                "health_grade": None,
+                "health_label": None,
+                "high_risk_count": 0,
+                "medium_risk_count": 0,
+                "low_risk_count": 0,
+                "unknown_risk_count": 0,
+                "failed_clause_count": 0,
+                "scored_clause_count": 0,
+                "total_clauses": None,
+                "rerun_count": current_rerun_count + 1,
+                "last_rerun_at": now,
+                "completed_at": None,
+            })
+            .eq("id", contract_id)
+            .eq("user_id", user_id)
+            .is_("deleted_at", "null")
+            .execute()
+        )
+        return bool(result.data)
+    except Exception as e:
+        logger.error(f"Error rerunning contract: {e}")
+        return False
+
+
+async def delete_clauses_for_contract(contract_id: str) -> bool:
+    """
+    Delete all clause analyses for a contract.
+    Used during rerun to clear old results.
+    Args:
+        contract_id: The contract UUID
+    Returns:
+        True if successful, False otherwise
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping delete_clauses_for_contract")
+        return False
+    client = get_supabase_client()
+    if not client:
+        return False
+    try:
+        result = (
+            client.table("clause_analyses")
+            .delete()
+            .eq("contract_id", contract_id)
+            .execute()
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting clauses for contract: {e}")
+        return False
 
 
 # =============================================================================

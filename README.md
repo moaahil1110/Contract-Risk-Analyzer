@@ -68,6 +68,14 @@ celery -A worker.celery_app worker --loglevel=INFO
 celery -A worker.celery_app flower --port=5555
 ```
 
+For local development, use the one-command starter from the repository root:
+
+```bash
+./scripts/start_dev.sh
+```
+
+It checks Redis, starts the FastAPI backend, starts the Celery worker, starts the Vite frontend, and cleans up those processes when you press Ctrl-C.
+
 Set `REDIS_URL`, `CELERY_RESULT_BACKEND`, `SUPABASE_STORAGE_BUCKET`, and Supabase credentials before running the worker in production. Uploaded PDFs are stored in Supabase Storage bucket `contracts`; `DEV_MODE=true` falls back to local `backend/uploads`.
 
 Worker pool selection is configured by the app so the command stays the same across environments:

@@ -6,6 +6,7 @@ Priority 4: Production uploads require authenticated user; dev uploads use deter
 
 import uuid
 import logging
+from uuid import UUID
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
 
@@ -22,6 +23,21 @@ router = APIRouter()
 # In-memory store for development fallback and caching
 # contract_store: {contract_id: {filename, text, clauses, status, ...}}
 contract_store: Dict[str, Dict[str, Any]] = {}
+
+
+def _can_persist_user_to_supabase(user_id: Optional[str]) -> bool:
+    """
+    Supabase contracts.user_id is a UUID. The deterministic DEV_MODE fallback
+    user is intentionally not a real Supabase UUID, so those uploads must stay
+    in local fallback storage even when Supabase is configured.
+    """
+    if not user_id:
+        return False
+    try:
+        UUID(str(user_id))
+        return True
+    except ValueError:
+        return False
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -66,6 +82,16 @@ async def upload_contract(
 
     contract_id = str(uuid.uuid4())
     mime_type = file.content_type or "application/pdf"
+    can_persist_to_supabase = _can_persist_user_to_supabase(user_id)
+
+    if is_supabase_configured() and not can_persist_to_supabase:
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "Please sign in before uploading contracts. "
+                "Supabase-backed analysis requires an authenticated user."
+            ),
+        )
 
     try:
         storage_path = await save_contract_file(
@@ -80,27 +106,28 @@ async def upload_contract(
         raise HTTPException(status_code=500, detail=f"Failed to store contract PDF: {str(e)}")
 
     db_contract = None
+
     try:
-        if user_id:
+        if can_persist_to_supabase:
             await ensure_user_profile(user_id=user_id, email=user_email)
 
-        db_contract = await create_contract(
-            user_id=user_id,
-            filename=file.filename,
-            contract_type=selected_contract_type,
-            contract_id=contract_id,
-            storage_path=storage_path,
-            file_size_bytes=len(file_bytes),
-            mime_type=mime_type,
-            status=CONTRACT_STATUS_UPLOADED,
-        )
-        if not db_contract:
-            await update_contract_storage_metadata(contract_id, storage_path, len(file_bytes), mime_type)
-            if is_supabase_configured():
-                raise RuntimeError("Contract metadata could not be saved to Supabase")
+            db_contract = await create_contract(
+                user_id=user_id,
+                filename=file.filename,
+                contract_type=selected_contract_type,
+                contract_id=contract_id,
+                storage_path=storage_path,
+                file_size_bytes=len(file_bytes),
+                mime_type=mime_type,
+                status=CONTRACT_STATUS_UPLOADED,
+            )
+            if not db_contract:
+                await update_contract_storage_metadata(contract_id, storage_path, len(file_bytes), mime_type)
+                if is_supabase_configured() and not DEV_MODE:
+                    raise RuntimeError("Contract metadata could not be saved to Supabase")
     except Exception as e:
         logger.error(f"Failed to create contract in database: {e}")
-        if is_supabase_configured():
+        if is_supabase_configured() and not DEV_MODE:
             raise HTTPException(status_code=500, detail="Failed to save contract metadata")
 
     # Store in memory (for both fallback and caching)

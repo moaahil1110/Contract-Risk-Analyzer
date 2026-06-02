@@ -7,7 +7,7 @@ from main import app
 
 
 @contextmanager
-def _authenticated_as(user_id="test-user-1", email="test@example.com"):
+def _authenticated_as(user_id="11111111-1111-4111-8111-111111111111", email="test@example.com"):
     app.dependency_overrides[require_user] = lambda: {"id": user_id, "email": email}
     try:
         yield
@@ -48,4 +48,26 @@ def test_upload_creates_uploaded_contract_without_extraction(monkeypatch):
         assert record["text"] is None
         assert record["clauses"] is None
         # Verify real user_id is stored
-        assert record["user_id"] == "test-user-1"
+        assert record["user_id"] == "11111111-1111-4111-8111-111111111111"
+
+
+def test_supabase_backed_upload_requires_persistable_user(monkeypatch):
+    async def fake_save(**_kwargs):
+        raise AssertionError("Upload should fail before storage writes")
+
+    monkeypatch.setattr(upload, "is_supabase_configured", lambda: True)
+    monkeypatch.setattr(upload, "save_contract_file", fake_save)
+
+    upload.contract_store.clear()
+
+    with _authenticated_as(user_id="dev-user-123"):
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/upload",
+            files={"file": ("sample.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")},
+            data={"contract_type": "nda"},
+        )
+
+        assert response.status_code == 401
+        assert "sign in" in response.json()["detail"].lower()
+        assert upload.contract_store == {}
