@@ -44,7 +44,13 @@ export const uploadContract = async (file, contractType) => {
   })
 
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
+    if (response.status === 404) {
+      throw new Error('Contract not found or you do not have access.')
+    }
     throw new Error(error.detail || 'Failed to upload contract')
   }
 
@@ -62,7 +68,13 @@ export const startAnalysis = async (contractId) => {
   })
 
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
+    if (response.status === 404) {
+      throw new Error('Contract not found or you do not have access.')
+    }
     throw new Error(error.detail || 'Failed to start analysis')
   }
 
@@ -76,7 +88,13 @@ export const getAnalysis = async (contractId) => {
   })
 
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
+    if (response.status === 404) {
+      throw new Error('Contract not found or you do not have access.')
+    }
     throw new Error(error.detail || 'Failed to fetch analysis')
   }
 
@@ -90,7 +108,13 @@ export const getAnalysisStatus = async (contractId) => {
   })
 
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
+    if (response.status === 404) {
+      throw new Error('Contract not found or you do not have access.')
+    }
     throw new Error(error.detail || 'Failed to fetch analysis status')
   }
 
@@ -104,7 +128,10 @@ export const getHistory = async () => {
   })
 
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
     throw new Error(error.detail || 'Failed to fetch history')
   }
 
@@ -118,7 +145,13 @@ export const exportReport = async (contractId) => {
   })
 
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      throw new Error('Your session has expired. Please log in again.')
+    }
+    if (response.status === 404) {
+      throw new Error('Contract not found or you do not have access.')
+    }
     throw new Error(error.detail || 'Failed to export report')
   }
 
@@ -137,7 +170,7 @@ export const pollUntilComplete = async (contractId, onUpdate, onComplete, onErro
   const poll = async () => {
     try {
       const data = await getAnalysisStatus(contractId)
-      
+
       if (onUpdate) {
         onUpdate(data)
       }
@@ -150,7 +183,7 @@ export const pollUntilComplete = async (contractId, onUpdate, onComplete, onErro
       }
 
       if (data.status === 'failed') {
-        throw new Error(data.error || data.message || 'Analysis failed')
+        throw new Error(data.error_message || data.error || data.message || 'Analysis failed')
       }
 
       // Continue polling every 3 seconds

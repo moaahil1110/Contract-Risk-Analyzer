@@ -1,9 +1,23 @@
+from contextlib import contextmanager
 from fastapi.testclient import TestClient
 
+from api.middleware.auth import require_user
 from api.routes import analyse, export, upload
 from services import analysis_pipeline
 from services.job_queue import default_worker_concurrency, default_worker_pool
 from main import app
+
+
+_TEST_USER = {"id": "test-user-1", "email": "test@example.com"}
+
+
+@contextmanager
+def _authenticated_as(user_id="test-user-1", email="test@example.com"):
+    app.dependency_overrides[require_user] = lambda: {"id": user_id, "email": email}
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(require_user, None)
 
 
 async def _no_sleep(_seconds):
@@ -57,7 +71,7 @@ def _disable_database(monkeypatch):
     async def _false_async(*_args, **_kwargs):
         return False
 
-    monkeypatch.setattr(analyse, "get_active_analysis_job", lambda *_args, **_kwargs: _false_async())
+    monkeypatch.setattr(analyse, "get_active_analysis_job_for_contract", _false_async)
     monkeypatch.setattr(analyse, "create_analysis_job", lambda *_args, **_kwargs: _false_async())
     monkeypatch.setattr(analyse, "update_contract_progress", _false_async)
 
@@ -71,7 +85,7 @@ def test_analysis_api_queues_once_and_status_returns_progress(monkeypatch):
     analyse.analysis_results.clear()
     upload.contract_store[contract_id] = {
         "id": contract_id,
-        "user_id": None,
+        "user_id": _TEST_USER["id"],
         "filename": "EC.pdf",
         "contract_type": "employment",
         "selected_contract_type": "employment",
@@ -82,20 +96,21 @@ def test_analysis_api_queues_once_and_status_returns_progress(monkeypatch):
         "clauses": None,
     }
 
-    client = TestClient(app)
-    response = client.post(f"/api/v1/analyse/{contract_id}")
-    assert response.status_code == 200
-    assert response.json()["status"] == "queued"
-    assert response.json()["task_id"]
+    with _authenticated_as():
+        client = TestClient(app)
+        response = client.post(f"/api/v1/analyse/{contract_id}")
+        assert response.status_code == 200
+        assert response.json()["status"] == "queued"
+        assert response.json()["task_id"]
 
-    status = client.get(f"/api/v1/analyse/{contract_id}/status").json()
-    assert status["status"] == "queued"
-    assert status["progress_percent"] == 0
-    assert status["has_results"] is False
+        status = client.get(f"/api/v1/analyse/{contract_id}/status").json()
+        assert status["status"] == "queued"
+        assert status["progress_percent"] == 0
+        assert status["has_results"] is False
 
-    duplicate = client.post(f"/api/v1/analyse/{contract_id}")
-    assert duplicate.status_code == 200
-    assert duplicate.json()["message"] == "Analysis is already queued or running"
+        duplicate = client.post(f"/api/v1/analyse/{contract_id}")
+        assert duplicate.status_code == 200
+        assert duplicate.json()["message"] == "Analysis is already queued or running"
 
 
 def test_api_export_includes_failed_clause_count(monkeypatch):
@@ -106,7 +121,7 @@ def test_api_export_includes_failed_clause_count(monkeypatch):
     analyse.analysis_results.clear()
     upload.contract_store[contract_id] = {
         "id": contract_id,
-        "user_id": None,
+        "user_id": _TEST_USER["id"],
         "filename": "NDA.pdf",
         "contract_type": "nda",
         "selected_contract_type": "nda",
@@ -138,16 +153,17 @@ def test_api_export_includes_failed_clause_count(monkeypatch):
         }],
     }
 
-    client = TestClient(app)
-    result = client.get(f"/api/v1/analyse/{contract_id}").json()
-    assert result["health"]["grade"] == "N/A"
-    assert result["health"]["failed_clause_count"] == 1
-    assert result["clauses"][0]["risk_level"] == "unknown"
+    with _authenticated_as():
+        client = TestClient(app)
+        result = client.get(f"/api/v1/analyse/{contract_id}").json()
+        assert result["health"]["grade"] == "N/A"
+        assert result["health"]["failed_clause_count"] == 1
+        assert result["clauses"][0]["risk_level"] == "unknown"
 
-    export_response = client.get(f"/api/v1/export/{contract_id}")
-    assert export_response.status_code == 200
-    assert export_response.headers["content-type"] == "application/pdf"
-    assert b"Failed Analyses: 1" in export_response.content
+        export_response = client.get(f"/api/v1/export/{contract_id}")
+        assert export_response.status_code == 200
+        assert export_response.headers["content-type"] == "application/pdf"
+        assert b"Failed Analyses: 1" in export_response.content
 
 
 def test_worker_pipeline_success_records_timings(monkeypatch):

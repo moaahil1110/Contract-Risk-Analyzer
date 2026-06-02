@@ -1,7 +1,7 @@
 """
 Upload API Route
 Handles PDF contract uploads and initial processing (PDF → clauses).
-Week 3: Added Supabase integration with in-memory fallback
+Priority 4: Production uploads require authenticated user; dev uploads use deterministic dummy user.
 """
 
 import uuid
@@ -13,7 +13,7 @@ from models.contract import UploadResponse
 from core.status import CONTRACT_STATUS_UPLOADED
 from db.queries import create_contract, ensure_user_profile, update_contract_storage_metadata
 from db.supabase_client import is_supabase_configured
-from api.middleware.auth import optional_user
+from api.middleware.auth import require_user, DEV_MODE
 from services.storage import save_contract_file
 
 logger = logging.getLogger(__name__)
@@ -29,29 +29,28 @@ async def upload_contract(
     request: Request,
     file: UploadFile = File(...),
     contract_type: Optional[str] = Form(None),
-    user: Optional[Dict[str, Any]] = Depends(optional_user),
+    user: Dict[str, Any] = Depends(require_user),
 ):
     """
     Upload a contract PDF and start the analysis pipeline.
-    
-    Args:
-        file: PDF file to analyze
-        contract_type: Type of contract (nda, employment, vendor, other)
-    
-    Returns:
-        UploadResponse with contract_id and status
+    Production requires a valid authenticated user.
+    Dev mode falls back to a deterministic dummy user.
     """
-    # Get user ID from the authenticated user
-    user_id = user.get("id") if user else None
-    user_email = user.get("email") if user else None
+    user_id = user.get("id")
+    user_email = user.get("email")
+
+    # In production, require a real user_id
+    if not DEV_MODE and not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required to upload contracts.")
+
     selected_contract_type = (contract_type or "other").lower().strip()
     if selected_contract_type not in {"nda", "employment", "vendor", "other"}:
         selected_contract_type = "other"
-    
+
     # Validate file type
     if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
-    
+
     # Read file content
     try:
         file_bytes = await file.read()
@@ -64,7 +63,7 @@ async def upload_contract(
     except Exception as e:
         logger.error(f"Error reading file: {e}")
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
-    
+
     contract_id = str(uuid.uuid4())
     mime_type = file.content_type or "application/pdf"
 
@@ -84,7 +83,7 @@ async def upload_contract(
     try:
         if user_id:
             await ensure_user_profile(user_id=user_id, email=user_email)
-        
+
         db_contract = await create_contract(
             user_id=user_id,
             filename=file.filename,
@@ -134,34 +133,44 @@ async def upload_contract(
 
 
 @router.get("/upload-debug/{contract_id}")
-async def get_upload_debug(contract_id: str):
+async def get_upload_debug(
+    contract_id: str,
+    request: Request,
+    user: Dict[str, Any] = Depends(require_user),
+):
     """
     Debug endpoint to view extracted text and clauses for a contract.
-    This is a temporary endpoint for Week 1 testing.
+    Disabled in production; only available in DEV_MODE for the contract owner.
     """
-    if contract_id not in contract_store:
-        raise HTTPException(status_code=404, detail="Contract not found")
-    
-    record = contract_store[contract_id]
-    
-    # Return a safe version (truncated text, clause count)
-    return {
-        "contract_id": contract_id,
-        "filename": record["filename"],
-        "status": record["status"],
-        "contract_type": record["contract_type"],
-        "user_id": record.get("user_id"),
-        "db_record": record.get("db_record", False),
-        "text_length": len(record["text"]) if record["text"] else 0,
-        "text_preview": record["text"][:1000] + "..." if record["text"] else None,
-        "clause_count": len(record["clauses"]) if record["clauses"] else 0,
-        "clauses": [
-            {
-                "index": i,
-                "length": len(c),
-                "preview": c[:200] + "..." if len(c) > 200 else c
+    if not DEV_MODE:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    # Even in dev, require ownership
+    user_id = user.get("id")
+
+    # Check in-memory first
+    if contract_id in contract_store:
+        record = contract_store[contract_id]
+        if record.get("user_id") == user_id:
+            return {
+                "contract_id": contract_id,
+                "filename": record["filename"],
+                "status": record["status"],
+                "contract_type": record["contract_type"],
+                "user_id": record.get("user_id"),
+                "db_record": record.get("db_record", False),
+                "text_length": len(record["text"]) if record["text"] else 0,
+                "text_preview": record["text"][:1000] + "..." if record["text"] else None,
+                "clause_count": len(record["clauses"]) if record["clauses"] else 0,
+                "clauses": [
+                    {
+                        "index": i,
+                        "length": len(c),
+                        "preview": c[:200] + "..." if len(c) > 200 else c
+                    }
+                    for i, c in enumerate(record["clauses"][:5] if record["clauses"] else [])
+                ],
+                "error": record.get("error"),
             }
-            for i, c in enumerate(record["clauses"][:5] if record["clauses"] else [])
-        ],
-        "error": record.get("error"),
-    }
+
+    raise HTTPException(status_code=404, detail="Contract not found")

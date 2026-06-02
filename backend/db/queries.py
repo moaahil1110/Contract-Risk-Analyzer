@@ -411,6 +411,130 @@ async def get_analysis_job_by_task_id(celery_task_id: str) -> Optional[Dict[str,
         return None
 
 
+async def get_contract_for_user(contract_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get a contract by ID scoped to a specific user.
+    Uses WHERE id = contract_id AND user_id = user_id for defense in depth.
+
+    Args:
+        contract_id: The contract UUID
+        user_id: The user's UUID
+
+    Returns:
+        The contract record if found and owned by user_id, None otherwise
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping get_contract_for_user")
+        return None
+
+    client = get_supabase_client()
+    if not client:
+        return None
+
+    try:
+        result = (
+            client.table("contracts")
+            .select("*")
+            .eq("id", contract_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Error getting contract for user: {e}")
+        raise
+
+
+async def get_contract_with_clauses_for_user(contract_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get a contract with all its clause analyses scoped to a specific user.
+
+    Args:
+        contract_id: The contract UUID
+        user_id: The user's UUID
+
+    Returns:
+        Dictionary with contract data and clauses list if owned by user_id, None otherwise
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping get_contract_with_clauses_for_user")
+        return None
+
+    client = get_supabase_client()
+    if not client:
+        return None
+
+    try:
+        contract_result = (
+            client.table("contracts")
+            .select("*")
+            .eq("id", contract_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+
+        if not contract_result.data:
+            return None
+
+        contract = contract_result.data[0]
+
+        clauses_result = (
+            client.table("clause_analyses")
+            .select("*")
+            .eq("contract_id", contract_id)
+            .order("clause_index")
+            .execute()
+        )
+
+        contract["clauses"] = clauses_result.data if clauses_result.data else []
+        return contract
+
+    except Exception as e:
+        logger.error(f"Error getting contract with clauses for user: {e}")
+        raise
+
+
+async def get_active_analysis_job_for_contract(contract_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get the active analysis job for a contract.
+    This should ONLY be called after verifying the user owns the contract.
+
+    Args:
+        contract_id: The contract UUID
+
+    Returns:
+        The active job record, or None if not found
+    """
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping get_active_analysis_job_for_contract")
+        return None
+
+    client = get_supabase_client()
+    if not client:
+        return None
+
+    try:
+        result = (
+            client.table("analysis_jobs")
+            .select("*")
+            .eq("contract_id", contract_id)
+            .in_("status", list(ACTIVE_JOB_STATUSES))
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Error getting active analysis job for contract: {e}")
+        raise
+
+
 async def get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
     """
     Get a contract by ID.

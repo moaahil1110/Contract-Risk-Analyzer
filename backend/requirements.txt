@@ -29,6 +29,7 @@ flower==2.0.1
 
 # JWT validation
 PyJWT==2.8.0
+cryptography==46.0.3
 
 # PDF export
 weasyprint==62.3

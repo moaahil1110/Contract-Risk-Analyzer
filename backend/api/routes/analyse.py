@@ -1,21 +1,22 @@
 """
-Analysis API Route (Week 2 & 3)
+Analysis API Route
 Full analysis pipeline with RAG, LLM, and health scoring.
-Week 3: Added Supabase integration for persistence
+Priority 4: All endpoints require authentication and enforce contract ownership.
 """
 
 import logging
 import uuid
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from api.routes.upload import contract_store
+from api.middleware.auth import require_user, DEV_MODE
 from core.status import CONTRACT_STATUS_COMPLETE, CONTRACT_STATUS_FAILED, CONTRACT_STATUS_QUEUED
 from db.queries import (
     create_analysis_job,
-    get_active_analysis_job,
-    get_contract_with_clauses,
-    get_contract,
+    get_contract_for_user,
+    get_contract_with_clauses_for_user,
+    get_active_analysis_job_for_contract,
     update_contract_progress,
 )
 from db.supabase_client import is_supabase_configured
@@ -29,6 +30,7 @@ router = APIRouter()
 
 # In-memory store for analysis results (fallback when Supabase is not configured)
 analysis_results: Dict[str, Any] = {}
+
 
 def _progress_response(contract_id: str, record: Dict[str, Any], job: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     status = record.get("status", "unknown")
@@ -46,17 +48,50 @@ def _progress_response(contract_id: str, record: Dict[str, Any], job: Optional[D
     }
 
 
+def _check_contract_ownership(contract_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Check if a contract exists and is owned by the given user.
+    Returns the contract record if owned, None otherwise.
+    Used for in-memory fallback when Supabase is not configured.
+    """
+    record = contract_store.get(contract_id)
+    if not record:
+        return None
+    # In dev mode, allow access if user_id matches or if no user_id was stored
+    if DEV_MODE and record.get("user_id") is None:
+        return record
+    if record.get("user_id") == user_id:
+        return record
+    return None
+
+
 @router.post("/analyse/{contract_id}")
-async def start_analysis(contract_id: str):
+async def start_analysis(
+    contract_id: str,
+    user: Dict[str, Any] = Depends(require_user),
+):
     """
     Start analysis for a contract.
     Returns immediately, analysis runs in background.
+    Requires authentication and ownership of the contract.
     """
+    user_id = user.get("id")
     record = None
+
+    # Verify ownership via database first
     if is_supabase_configured():
-        record = await get_contract(contract_id)
-    if not record:
-        record = contract_store.get(contract_id)
+        try:
+            record = await get_contract_for_user(contract_id, user_id)
+        except Exception:
+            if not DEV_MODE:
+                raise HTTPException(status_code=503, detail="Database service unavailable")
+        if not record and not DEV_MODE:
+            raise HTTPException(status_code=404, detail="Contract not found")
+        if not record and DEV_MODE:
+            record = _check_contract_ownership(contract_id, user_id)
+    else:
+        record = _check_contract_ownership(contract_id, user_id)
+
     if not record:
         raise HTTPException(status_code=404, detail="Contract not found")
 
@@ -71,7 +106,12 @@ async def start_analysis(contract_id: str):
             "message": "Contract has already been analyzed",
         }
 
-    active_job = await get_active_analysis_job(contract_id)
+    try:
+        active_job = await get_active_analysis_job_for_contract(contract_id)
+    except Exception:
+        if not DEV_MODE:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+        active_job = None
     if not active_job:
         active_job = get_local_active_job(contract_id)
     if active_job:
@@ -113,7 +153,7 @@ async def start_analysis(contract_id: str):
                 "error_message": str(exc),
             })
         raise HTTPException(status_code=503, detail=f"Failed to enqueue analysis: {str(exc)}")
-    
+
     return {
         "contract_id": contract_id,
         "job_id": job.get("id") if job else None,
@@ -124,21 +164,23 @@ async def start_analysis(contract_id: str):
 
 
 @router.get("/analyse/{contract_id}")
-async def get_analysis(contract_id: str):
+async def get_analysis(
+    contract_id: str,
+    user: Dict[str, Any] = Depends(require_user),
+):
     """
     Get full analysis results for a contract.
-    
-    First checks Supabase if configured, then falls back to in-memory store.
-    Returns cached results if analysis is complete, or status if still processing.
+    Requires authentication and ownership of the contract.
     """
-    # First, try to get from Supabase (database of truth)
+    user_id = user.get("id")
+
+    # Try database first with ownership check
     if is_supabase_configured():
         try:
-            db_contract = await get_contract_with_clauses(contract_id)
+            db_contract = await get_contract_with_clauses_for_user(contract_id, user_id)
             if db_contract and db_contract.get("status") == CONTRACT_STATUS_COMPLETE:
                 logger.info(f"Returning results from Supabase for contract {contract_id}")
-                
-                # Build health data from DB record
+
                 health = {
                     "score": db_contract.get("health_score", 0),
                     "grade": db_contract.get("health_grade", "N/A"),
@@ -153,8 +195,7 @@ async def get_analysis(contract_id: str):
                     "failed_clause_count": db_contract.get("failed_clause_count", 0),
                     "scored_clause_count": db_contract.get("scored_clause_count", 0),
                 }
-                
-                # Transform clauses to response format
+
                 clauses = []
                 for clause in db_contract.get("clauses", []):
                     clauses.append({
@@ -178,7 +219,7 @@ async def get_analysis(contract_id: str):
                         "evidence_summary": clause.get("evidence_summary", ""),
                         "benchmark_alignment": clause.get("benchmark_alignment", "none"),
                     })
-                
+
                 return {
                     "contract_id": contract_id,
                     "filename": db_contract.get("filename", ""),
@@ -196,18 +237,20 @@ async def get_analysis(contract_id: str):
                     "total_clauses": len(clauses),
                 }
             if db_contract:
-                active_job = await get_active_analysis_job(contract_id)
+                active_job = await get_active_analysis_job_for_contract(contract_id)
                 return _progress_response(contract_id, db_contract, active_job)
         except Exception as e:
             logger.warning(f"Failed to get results from Supabase: {e}")
-    
-    # Fallback to in-memory store
-    if contract_id not in contract_store:
+            if not DEV_MODE:
+                raise HTTPException(status_code=503, detail="Database service unavailable")
+        if not DEV_MODE:
+            raise HTTPException(status_code=404, detail="Contract not found")
+
+    # Fallback to in-memory store with ownership check
+    record = _check_contract_ownership(contract_id, user_id)
+    if not record:
         raise HTTPException(status_code=404, detail="Contract not found")
-    
-    record = contract_store[contract_id]
-    
-    # Check if analysis is complete
+
     if contract_id in analysis_results or record.get("status") == CONTRACT_STATUS_COMPLETE:
         result = analysis_results.get(contract_id) or {
             "health": record.get("health"),
@@ -226,8 +269,7 @@ async def get_analysis(contract_id: str):
             "clauses": result["clauses"],
             "total_clauses": len(result["clauses"]),
         }
-    
-    # Analysis still in progress or not started
+
     response = _progress_response(contract_id, record, get_local_active_job(contract_id))
     response["filename"] = record["filename"]
     response["contract_type"] = record.get("contract_type", "unknown")
@@ -239,51 +281,68 @@ async def get_analysis(contract_id: str):
 
 
 @router.get("/analyse/{contract_id}/status")
-async def get_analysis_status(contract_id: str):
+async def get_analysis_status(
+    contract_id: str,
+    user: Dict[str, Any] = Depends(require_user),
+):
     """
     Get just the analysis status (lightweight endpoint for polling).
+    Requires authentication and ownership of the contract.
     """
-    # First check Supabase
+    user_id = user.get("id")
+
     if is_supabase_configured():
         try:
-            db_contract = await get_contract(contract_id)
+            db_contract = await get_contract_for_user(contract_id, user_id)
             if db_contract:
-                active_job = await get_active_analysis_job(contract_id)
+                active_job = await get_active_analysis_job_for_contract(contract_id)
                 return _progress_response(contract_id, db_contract, active_job)
         except Exception as e:
             logger.debug(f"Failed to get status from Supabase: {e}")
-    
-    # Fallback to in-memory
-    if contract_id not in contract_store:
+            if not DEV_MODE:
+                raise HTTPException(status_code=503, detail="Database service unavailable")
+        if not DEV_MODE:
+            raise HTTPException(status_code=404, detail="Contract not found")
+
+    record = _check_contract_ownership(contract_id, user_id)
+    if not record:
         raise HTTPException(status_code=404, detail="Contract not found")
-    
-    record = contract_store[contract_id]
+
     if contract_id in analysis_results:
         record = {**record, "status": CONTRACT_STATUS_COMPLETE, "progress_percent": 100}
     return _progress_response(contract_id, record, get_local_active_job(contract_id))
 
 
 @router.get("/analyse/{contract_id}/clauses/{clause_index}")
-async def get_clause_detail(contract_id: str, clause_index: int):
+async def get_clause_detail(
+    contract_id: str,
+    clause_index: int,
+    user: Dict[str, Any] = Depends(require_user),
+):
     """
     Get detailed analysis for a specific clause.
+    Requires authentication and ownership of the contract.
     """
-    # First check in-memory results
+    user_id = user.get("id")
+
+    # Check in-memory results with ownership
     if contract_id in analysis_results:
-        result = analysis_results[contract_id]
-        if clause_index < 0 or clause_index >= len(result["clauses"]):
-            raise HTTPException(status_code=404, detail="Clause not found")
-        return result["clauses"][clause_index]
-    
-    # Fallback to Supabase
+        record = _check_contract_ownership(contract_id, user_id)
+        if record:
+            result = analysis_results[contract_id]
+            if clause_index < 0 or clause_index >= len(result["clauses"]):
+                raise HTTPException(status_code=404, detail="Clause not found")
+            return result["clauses"][clause_index]
+
+    # Fallback to Supabase with ownership check
     if is_supabase_configured():
         try:
-            db_contract = await get_contract_with_clauses(contract_id)
+            db_contract = await get_contract_with_clauses_for_user(contract_id, user_id)
             if db_contract and db_contract.get("clauses"):
                 clauses = db_contract["clauses"]
                 if clause_index < 0 or clause_index >= len(clauses):
                     raise HTTPException(status_code=404, detail="Clause not found")
-                
+
                 clause = clauses[clause_index]
                 return {
                     "id": str(clause.get("id", "")),
@@ -308,5 +367,9 @@ async def get_clause_detail(contract_id: str, clause_index: int):
                 }
         except Exception as e:
             logger.error(f"Failed to get clause from Supabase: {e}")
-    
+            if not DEV_MODE:
+                raise HTTPException(status_code=503, detail="Database service unavailable")
+        if not DEV_MODE:
+            raise HTTPException(status_code=404, detail="Analysis results not found")
+
     raise HTTPException(status_code=404, detail="Analysis results not found")

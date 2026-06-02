@@ -78,7 +78,8 @@ const Dashboard = () => {
       setHistory(data.contracts || []);
     } catch (err) {
       console.error('Failed to load history:', err);
-      if (err.message?.includes('auth')) {
+      const msg = err.message || ''
+      if (msg.toLowerCase().includes('session') || msg.toLowerCase().includes('log in') || msg.toLowerCase().includes('auth')) {
         navigate('/login');
       }
     } finally {
@@ -139,7 +140,12 @@ const Dashboard = () => {
           setLoading(false);
           setCurrentStage(null);
           setAnalysisStatus('');
-          setError(err.message || 'Analysis failed');
+          const msg = err.message || 'Analysis failed'
+          if (msg.toLowerCase().includes('session') || msg.toLowerCase().includes('log in')) {
+            navigate('/login')
+            return
+          }
+          setError(msg)
         }
       );
     } catch (err) {

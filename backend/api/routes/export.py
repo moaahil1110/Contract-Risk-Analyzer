@@ -1,17 +1,19 @@
 """
 Export API Route
 Download a PDF risk report for completed contract analyses.
+Priority 4: Requires authentication and contract ownership.
 """
 
 import re
 import textwrap
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
 
 from api.routes.analyse import analysis_results
 from api.routes.upload import contract_store
-from db.queries import get_contract_with_clauses
+from api.middleware.auth import require_user, DEV_MODE
+from db.queries import get_contract_with_clauses_for_user
 from db.supabase_client import is_supabase_configured
 
 router = APIRouter()
@@ -31,33 +33,58 @@ def _normalize_concerns(value: Any) -> List[str]:
     return []
 
 
-async def _load_report_data(contract_id: str) -> Optional[Dict[str, Any]]:
-    if is_supabase_configured():
-        db_contract = await get_contract_with_clauses(contract_id)
-        if db_contract:
-            return {
-                "contract_id": contract_id,
-                "filename": db_contract.get("filename", "contract.pdf"),
-                "contract_type": db_contract.get("contract_type", "unknown"),
-                "status": db_contract.get("status", "unknown"),
-                "health": {
-                    "score": db_contract.get("health_score", 0),
-                    "grade": db_contract.get("health_grade", "N/A"),
-                    "label": db_contract.get("health_label", "Unknown"),
-                    "risk_counts": {
-                        "high": db_contract.get("high_risk_count", 0),
-                        "medium": db_contract.get("medium_risk_count", 0),
-                        "low": db_contract.get("low_risk_count", 0),
-                    },
-                    "total_clauses": db_contract.get("total_clauses", 0),
-                    "unknown_count": db_contract.get("unknown_risk_count", 0),
-                    "failed_clause_count": db_contract.get("failed_clause_count", 0),
-                    "scored_clause_count": db_contract.get("scored_clause_count", 0),
-                },
-                "clauses": db_contract.get("clauses", []),
-            }
-
+def _check_contract_ownership(contract_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Check if a contract exists and is owned by the given user.
+    Returns the contract record if owned, None otherwise.
+    """
     record = contract_store.get(contract_id)
+    if not record:
+        return None
+    if DEV_MODE and record.get("user_id") is None:
+        return record
+    if record.get("user_id") == user_id:
+        return record
+    return None
+
+
+async def _load_report_data(contract_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Load report data for a contract, verifying ownership.
+    """
+    if is_supabase_configured():
+        try:
+            db_contract = await get_contract_with_clauses_for_user(contract_id, user_id)
+            if db_contract:
+                return {
+                    "contract_id": contract_id,
+                    "filename": db_contract.get("filename", "contract.pdf"),
+                    "contract_type": db_contract.get("contract_type", "unknown"),
+                    "status": db_contract.get("status", "unknown"),
+                    "health": {
+                        "score": db_contract.get("health_score", 0),
+                        "grade": db_contract.get("health_grade", "N/A"),
+                        "label": db_contract.get("health_label", "Unknown"),
+                        "risk_counts": {
+                            "high": db_contract.get("high_risk_count", 0),
+                            "medium": db_contract.get("medium_risk_count", 0),
+                            "low": db_contract.get("low_risk_count", 0),
+                        },
+                        "total_clauses": db_contract.get("total_clauses", 0),
+                        "unknown_count": db_contract.get("unknown_risk_count", 0),
+                        "failed_clause_count": db_contract.get("failed_clause_count", 0),
+                        "scored_clause_count": db_contract.get("scored_clause_count", 0),
+                    },
+                    "clauses": db_contract.get("clauses", []),
+                }
+        except Exception:
+            if not DEV_MODE:
+                raise HTTPException(status_code=503, detail="Database service unavailable")
+
+        if not DEV_MODE:
+            return None
+
+    record = _check_contract_ownership(contract_id, user_id)
     result = analysis_results.get(contract_id)
     if not record:
         return None
@@ -242,11 +269,16 @@ def _build_pdf(lines: List[str]) -> bytes:
 
 
 @router.get("/export/{contract_id}")
-async def export_report(contract_id: str):
+async def export_report(
+    contract_id: str,
+    user: Dict[str, Any] = Depends(require_user),
+):
     """
     Export a completed contract analysis as a PDF report.
+    Requires authentication and ownership of the contract.
     """
-    report = await _load_report_data(contract_id)
+    user_id = user.get("id")
+    report = await _load_report_data(contract_id, user_id)
     if not report:
         raise HTTPException(status_code=404, detail="Contract not found")
 
