@@ -7,13 +7,14 @@ Week 3: Added Supabase integration with in-memory fallback
 import uuid
 import logging
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Request, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
 
 from models.contract import UploadResponse
-from pipeline.pdf_parser import extract_text_from_pdf
-from pipeline.clause_splitter import split_clauses
-from db.queries import create_contract, ensure_user_profile
+from core.status import CONTRACT_STATUS_UPLOADED
+from db.queries import create_contract, ensure_user_profile, update_contract_storage_metadata
+from db.supabase_client import is_supabase_configured
 from api.middleware.auth import optional_user
+from services.storage import save_contract_file
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -26,7 +27,6 @@ contract_store: Dict[str, Dict[str, Any]] = {}
 @router.post("/upload", response_model=UploadResponse)
 async def upload_contract(
     request: Request,
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     contract_type: Optional[str] = Form(None),
     user: Optional[Dict[str, Any]] = Depends(optional_user),
@@ -65,8 +65,21 @@ async def upload_contract(
         logger.error(f"Error reading file: {e}")
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
     
-    # Create contract in Supabase (or generate UUID for fallback)
-    # In DEV_MODE, user_id may be None - Supabase will store NULL for user_id
+    contract_id = str(uuid.uuid4())
+    mime_type = file.content_type or "application/pdf"
+
+    try:
+        storage_path = await save_contract_file(
+            contract_id=contract_id,
+            user_id=user_id,
+            filename=file.filename,
+            file_bytes=file_bytes,
+            mime_type=mime_type,
+        )
+    except Exception as e:
+        logger.error(f"Failed to store contract PDF: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to store contract PDF: {str(e)}")
+
     db_contract = None
     try:
         if user_id:
@@ -75,14 +88,22 @@ async def upload_contract(
         db_contract = await create_contract(
             user_id=user_id,
             filename=file.filename,
-            contract_type=selected_contract_type
+            contract_type=selected_contract_type,
+            contract_id=contract_id,
+            storage_path=storage_path,
+            file_size_bytes=len(file_bytes),
+            mime_type=mime_type,
+            status=CONTRACT_STATUS_UPLOADED,
         )
+        if not db_contract:
+            await update_contract_storage_metadata(contract_id, storage_path, len(file_bytes), mime_type)
+            if is_supabase_configured():
+                raise RuntimeError("Contract metadata could not be saved to Supabase")
     except Exception as e:
         logger.error(f"Failed to create contract in database: {e}")
-    
-    # Use database ID if available, otherwise generate UUID
-    contract_id = db_contract["id"] if db_contract else str(uuid.uuid4())
-    
+        if is_supabase_configured():
+            raise HTTPException(status_code=500, detail="Failed to save contract metadata")
+
     # Store in memory (for both fallback and caching)
     contract_store[contract_id] = {
         "id": contract_id,
@@ -93,44 +114,22 @@ async def upload_contract(
         "detected_contract_type": None,
         "contract_type_confidence": 0,
         "contract_type_conflict": False,
-        "status": "processing",
+        "status": CONTRACT_STATUS_UPLOADED,
+        "progress_percent": 0,
+        "status_message": "Uploaded and ready for analysis",
+        "storage_path": storage_path,
+        "file_size_bytes": len(file_bytes),
+        "mime_type": mime_type,
         "text": None,
         "clauses": None,
         "error": None,
         "db_record": db_contract is not None,  # Track if saved to DB
     }
-    
-    # Process in background (for now, run synchronously for testing)
-    try:
-        # Step 1: Extract text from PDF
-        logger.info(f"[{contract_id}] Extracting text from PDF...")
-        text = extract_text_from_pdf(file_bytes)
-        contract_store[contract_id]["text"] = text
-        
-        if not text or len(text.strip()) == 0:
-            raise ValueError("No text could be extracted from the PDF")
-        
-        # Step 2: Split into clauses
-        logger.info(f"[{contract_id}] Splitting into clauses...")
-        clauses = await split_clauses(text)
-        contract_store[contract_id]["clauses"] = clauses
-        
-        # Update status
-        contract_store[contract_id]["status"] = "clauses_extracted"
-        
-        logger.info(f"[{contract_id}] Pipeline complete: {len(clauses)} clauses extracted")
-        
-    except Exception as e:
-        logger.error(f"[{contract_id}] Pipeline failed: {e}")
-        contract_store[contract_id]["status"] = "failed"
-        contract_store[contract_id]["error"] = str(e)
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
-    
-    clause_count = len(contract_store[contract_id].get("clauses", []))
+
     return UploadResponse(
         contract_id=contract_id,
-        status="processing",
-        message=f"Analysis started. PDF processed: {clause_count} clauses extracted."
+        status=CONTRACT_STATUS_UPLOADED,
+        message="PDF uploaded. Start analysis when ready."
     )
 
 

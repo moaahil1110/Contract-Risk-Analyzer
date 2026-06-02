@@ -1,0 +1,17 @@
+{
+  "nda_definition_high": {"expected_contract_type": "nda", "expected_clause_type": "definition", "expected_any_benchmark_ids": ["nda_001", "nda_002", "nda_003"]},
+  "nda_term_medium": {"expected_contract_type": "nda", "expected_clause_type": "term", "expected_any_benchmark_ids": ["nda_004", "nda_005", "nda_006"]},
+  "nda_residuals_high": {"expected_contract_type": "nda", "expected_clause_type": "residuals", "expected_any_benchmark_ids": ["nda_016", "nda_017", "nda_018"]},
+  "nda_exceptions_low": {"expected_contract_type": "nda", "expected_clause_type": "exceptions", "expected_any_benchmark_ids": ["nda_022", "nda_023", "nda_024"]},
+  "nda_remedies_high": {"expected_contract_type": "nda", "expected_clause_type": "remedies", "expected_any_benchmark_ids": ["nda_019", "nda_020", "nda_021"]},
+  "employment_ip_high": {"expected_contract_type": "employment", "expected_clause_type": "ip_assignment", "expected_any_benchmark_ids": ["employment_010", "employment_011", "employment_012"]},
+  "employment_compensation_high": {"expected_contract_type": "employment", "expected_clause_type": "compensation", "expected_any_benchmark_ids": ["employment_004", "employment_005", "employment_006"]},
+  "employment_bonus_medium": {"expected_contract_type": "employment", "expected_clause_type": "bonus", "expected_any_benchmark_ids": ["employment_007", "employment_008", "employment_009"]},
+  "employment_non_compete_high": {"expected_contract_type": "employment", "expected_clause_type": "non_compete", "expected_any_benchmark_ids": ["employment_016", "employment_017", "employment_018"]},
+  "employment_expenses_low": {"expected_contract_type": "employment", "expected_clause_type": "expense_reimbursement", "expected_any_benchmark_ids": ["employment_025", "employment_026", "employment_027"]},
+  "vendor_payment_high": {"expected_contract_type": "vendor", "expected_clause_type": "payment_terms", "expected_any_benchmark_ids": ["vendor_004", "vendor_005", "vendor_006"]},
+  "vendor_acceptance_low": {"expected_contract_type": "vendor", "expected_clause_type": "acceptance", "expected_any_benchmark_ids": ["vendor_007", "vendor_008", "vendor_009"]},
+  "vendor_liability_high": {"expected_contract_type": "vendor", "expected_clause_type": "limitation_of_liability", "expected_any_benchmark_ids": ["vendor_013", "vendor_014", "vendor_015"]},
+  "vendor_data_security_medium": {"expected_contract_type": "vendor", "expected_clause_type": "data_security", "expected_any_benchmark_ids": ["vendor_022", "vendor_023", "vendor_024"]},
+  "vendor_ip_high": {"expected_contract_type": "vendor", "expected_clause_type": "intellectual_property", "expected_any_benchmark_ids": ["vendor_028", "vendor_029", "vendor_030"]}
+}

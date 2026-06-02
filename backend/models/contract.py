@@ -24,6 +24,10 @@ class Clause(BaseModel):
     error_message: Optional[str] = None
     provider_used: Optional[str] = None
     retrieved_benchmarks: List[Dict[str, Any]] = []
+    cited_benchmark_ids: List[str] = []
+    risk_rule_applied: Optional[str] = None
+    evidence_summary: Optional[str] = None
+    benchmark_alignment: Literal["strong", "partial", "weak", "none"] = "none"
     created_at: Optional[datetime] = None
 
 
@@ -48,7 +52,23 @@ class Contract(BaseModel):
     selected_contract_type: Optional[str] = None
     detected_contract_type: Optional[str] = None
     contract_type_confidence: Optional[float] = None
-    status: Literal["processing", "complete", "failed"] = "processing"
+    status: Literal[
+        "uploaded",
+        "queued",
+        "extracting",
+        "clauses_extracted",
+        "retrieving_benchmarks",
+        "analysing",
+        "saving_results",
+        "complete",
+        "failed",
+    ] = "uploaded"
+    progress_percent: int = 0
+    status_message: Optional[str] = None
+    error_message: Optional[str] = None
+    storage_path: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    mime_type: Optional[str] = None
     health: Optional[HealthScore] = None
     clauses: Optional[List[Clause]] = None
     uploaded_at: Optional[datetime] = None

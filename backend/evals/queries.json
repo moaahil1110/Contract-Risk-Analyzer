@@ -1,0 +1,92 @@
+[
+  {
+    "query_id": "nda_definition_high",
+    "contract_type": "nda",
+    "clause_type": "definition",
+    "query_text": "Confidential Information includes all information disclosed by the disclosing party, whether or not marked confidential, including information already known or later made public."
+  },
+  {
+    "query_id": "nda_term_medium",
+    "contract_type": "nda",
+    "clause_type": "term",
+    "query_text": "The receiving party must protect confidential information for seven years after disclosure."
+  },
+  {
+    "query_id": "nda_residuals_high",
+    "contract_type": "nda",
+    "clause_type": "residuals",
+    "query_text": "The receiving party may freely use ideas and know-how retained in memory after reviewing the confidential information."
+  },
+  {
+    "query_id": "nda_exceptions_low",
+    "contract_type": "nda",
+    "clause_type": "exceptions",
+    "query_text": "Confidential information excludes information already known, public, independently developed, or lawfully received from a third party."
+  },
+  {
+    "query_id": "nda_remedies_high",
+    "contract_type": "nda",
+    "clause_type": "remedies",
+    "query_text": "Any breach requires the receiving party to pay one million dollars in liquidated damages plus all consequential damages."
+  },
+  {
+    "query_id": "employment_ip_high",
+    "contract_type": "employment",
+    "clause_type": "ip_assignment",
+    "query_text": "Employee assigns every invention created during employment, including personal projects made on personal time with personal equipment."
+  },
+  {
+    "query_id": "employment_compensation_high",
+    "contract_type": "employment",
+    "clause_type": "compensation",
+    "query_text": "The company may reduce salary retroactively for business reasons or performance concerns."
+  },
+  {
+    "query_id": "employment_bonus_medium",
+    "contract_type": "employment",
+    "clause_type": "bonus",
+    "query_text": "Employee may be eligible for a bonus as determined by management in its sole discretion."
+  },
+  {
+    "query_id": "employment_non_compete_high",
+    "contract_type": "employment",
+    "clause_type": "non_compete",
+    "query_text": "For two years after leaving, employee may not work for any competing or similar business anywhere in the world."
+  },
+  {
+    "query_id": "employment_expenses_low",
+    "contract_type": "employment",
+    "clause_type": "expense_reimbursement",
+    "query_text": "The company will reimburse reasonable pre-approved business expenses after employee submits receipts under company policy."
+  },
+  {
+    "query_id": "vendor_payment_high",
+    "contract_type": "vendor",
+    "clause_type": "payment_terms",
+    "query_text": "Customer may withhold payment for any reason and vendor must continue providing services during the dispute."
+  },
+  {
+    "query_id": "vendor_acceptance_low",
+    "contract_type": "vendor",
+    "clause_type": "acceptance",
+    "query_text": "Deliverables are accepted if they meet objective acceptance criteria or customer does not reject them with specific reasons within ten business days."
+  },
+  {
+    "query_id": "vendor_liability_high",
+    "contract_type": "vendor",
+    "clause_type": "limitation_of_liability",
+    "query_text": "Vendor is liable for all direct, indirect, consequential, special, and punitive damages without limitation."
+  },
+  {
+    "query_id": "vendor_data_security_medium",
+    "contract_type": "vendor",
+    "clause_type": "data_security",
+    "query_text": "Vendor will use reasonable efforts to keep customer data secure."
+  },
+  {
+    "query_id": "vendor_ip_high",
+    "contract_type": "vendor",
+    "clause_type": "intellectual_property",
+    "query_text": "Customer owns all vendor technology, methods, know-how, and tools used to provide the services."
+  }
+]

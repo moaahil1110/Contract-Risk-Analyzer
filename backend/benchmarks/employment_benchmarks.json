@@ -1,62 +1,602 @@
 [
   {
-    "type": "at_will_employment",
-    "text": "Your employment with the Company is at-will, meaning that either you or the Company may terminate the employment relationship at any time, with or without cause, and with or without notice.",
-    "risk_notes": "Standard at-will clause. Common in US employment. Low risk for company, higher for employee. Understand implications.",
-    "standard_version": "Standard Employment"
+    "benchmark_id": "employment_001",
+    "contract_type": "employment",
+    "clause_type": "at_will_employment",
+    "risk_level": "low",
+    "clause_text": "Employment is at-will, and either party may terminate employment at any time subject to applicable law and written company policies.",
+    "risk_rule": "At-will language should preserve statutory rights and policy commitments.",
+    "why_risky": "The clause is clear while acknowledging legal limits.",
+    "safe_version": "State at-will status while preserving statutory rights, written agreements, and required notices.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "at-will",
+      "termination",
+      "statutory-rights"
+    ]
   },
   {
-    "type": "ip_assignment",
-    "text": "Employee hereby assigns to Company all right, title, and interest in and to any and all inventions, discoveries, and improvements conceived or developed by Employee during the term of employment using Company's resources or relating to Company's business.",
-    "risk_notes": "Standard IP assignment. Reasonable if limited to company time/resources and company's business. Check scope.",
-    "standard_version": "Standard Employment"
+    "benchmark_id": "employment_002",
+    "contract_type": "employment",
+    "clause_type": "at_will_employment",
+    "risk_level": "medium",
+    "clause_text": "Employment is at-will and may be terminated by the company at any time, with or without cause.",
+    "risk_rule": "One-sided at-will language should clarify employee rights too.",
+    "why_risky": "It may imply only the employer has termination flexibility.",
+    "safe_version": "State that either party may terminate subject to applicable law and written agreements.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "at-will",
+      "one-sided",
+      "termination"
+    ]
   },
   {
-    "type": "ip_assignment",
-    "text": "Employee hereby assigns to Company all inventions, ideas, and developments conceived during employment, including those developed during personal time and using personal equipment, without regard to the relation to Company's business.",
-    "risk_notes": "HIGH RISK - captures personal time inventions and side projects. Unfair and overly broad.",
-    "standard_version": "Overly Broad"
+    "benchmark_id": "employment_003",
+    "contract_type": "employment",
+    "clause_type": "at_will_employment",
+    "risk_level": "high",
+    "clause_text": "The company may terminate employment at any time without paying earned wages, benefits, or accrued amounts.",
+    "risk_rule": "Termination clauses cannot waive earned compensation rights.",
+    "why_risky": "This creates unlawful or highly unfair forfeiture risk.",
+    "safe_version": "Require payment of earned wages, accrued benefits, and legally required amounts on termination.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "at-will",
+      "forfeiture",
+      "wages"
+    ]
   },
   {
-    "type": "non_solicit",
-    "text": "For a period of one (1) year following termination, Employee agrees not to solicit or attempt to solicit any customers, clients, or employees of the Company.",
-    "risk_notes": "Standard non-solicitation. One year is reasonable. Ensure scope is limited to direct relationships.",
-    "standard_version": "Standard Employment"
+    "benchmark_id": "employment_004",
+    "contract_type": "employment",
+    "clause_type": "compensation",
+    "risk_level": "low",
+    "clause_text": "Employee will receive an annual salary stated in the offer letter, paid according to regular payroll practices and subject to lawful deductions.",
+    "risk_rule": "Compensation should be specific and tied to payroll practices.",
+    "why_risky": "The clause is predictable and allows legally required deductions.",
+    "safe_version": "State salary, pay frequency, currency, and permitted deductions clearly.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "salary",
+      "payroll",
+      "deductions"
+    ]
   },
   {
-    "type": "non_compete",
-    "text": "For a period of six (6) months following termination, Employee agrees not to engage in any business that directly competes with the Company's core business within a fifty (50) mile radius of any Company office.",
-    "risk_notes": "Reasonable non-compete: short duration (6 months), narrow scope (direct competition), limited geography. Check local law - non-competes are banned or restricted in some jurisdictions.",
-    "standard_version": "Reasonable Non-Compete"
+    "benchmark_id": "employment_005",
+    "contract_type": "employment",
+    "clause_type": "compensation",
+    "risk_level": "medium",
+    "clause_text": "Compensation will be determined by the company from time to time and may be adjusted at its discretion.",
+    "risk_rule": "Discretionary compensation language lacks certainty.",
+    "why_risky": "The employee may not know base pay or when reductions can occur.",
+    "safe_version": "State base salary and require written notice for prospective compensation changes.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "salary",
+      "discretion",
+      "notice"
+    ]
   },
   {
-    "type": "non_compete",
-    "text": "For a period of two (2) years following termination, Employee shall not work for any company engaged in any business similar to the Company's business anywhere in the world.",
-    "risk_notes": "HIGH RISK - overly broad: 2 years, global scope, undefined 'similar business'. May be unenforceable but creates legal uncertainty.",
-    "standard_version": "Overly Broad"
+    "benchmark_id": "employment_006",
+    "contract_type": "employment",
+    "clause_type": "compensation",
+    "risk_level": "high",
+    "clause_text": "The company may reduce salary retroactively for business reasons or performance concerns.",
+    "risk_rule": "Retroactive pay reductions are highly risky and may violate wage laws.",
+    "why_risky": "Employees could lose earned compensation after work is performed.",
+    "safe_version": "Allow only prospective changes with written notice and compliance with wage laws.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "salary",
+      "retroactive",
+      "wage-law"
+    ]
   },
   {
-    "type": "salary",
-    "text": "Employee shall be paid an annual base salary of $[AMOUNT], payable semi-monthly in accordance with the Company's standard payroll practices, subject to applicable tax withholdings.",
-    "risk_notes": "Standard salary clause. Ensure the amount matches your offer letter. Check payment frequency.",
-    "standard_version": "Standard Employment"
+    "benchmark_id": "employment_007",
+    "contract_type": "employment",
+    "clause_type": "bonus",
+    "risk_level": "low",
+    "clause_text": "Any bonus is discretionary unless a written bonus plan states objective criteria and payment conditions.",
+    "risk_rule": "Clear discretionary bonus language reduces disputes.",
+    "why_risky": "It distinguishes discretionary awards from earned incentive compensation.",
+    "safe_version": "Identify whether bonus is discretionary or earned under an objective plan.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "bonus",
+      "discretionary",
+      "criteria"
+    ]
   },
   {
-    "type": "benefits",
-    "text": "Employee shall be eligible to participate in the employee benefit plans maintained by the Company, subject to the terms and conditions of such plans.",
-    "risk_notes": "Standard benefits clause. Review specific plan documents for actual coverage details. Low risk.",
-    "standard_version": "Standard Employment"
+    "benchmark_id": "employment_008",
+    "contract_type": "employment",
+    "clause_type": "bonus",
+    "risk_level": "medium",
+    "clause_text": "Employee may be eligible for a bonus as determined by management in its sole discretion.",
+    "risk_rule": "Sole discretion language can create fairness concerns if expectations are unclear.",
+    "why_risky": "The employee may expect incentive pay without knowing criteria.",
+    "safe_version": "Provide eligibility criteria, timing, and whether employment on payment date is required.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "bonus",
+      "sole-discretion",
+      "eligibility"
+    ]
   },
   {
-    "type": "termination_notice",
-    "text": "Either party may terminate this Agreement by providing thirty (30) days written notice to the other party.",
-    "risk_notes": "Notice period requirement. Reasonable for both sides. Check if employment is at-will or contractual.",
-    "standard_version": "Standard Employment"
+    "benchmark_id": "employment_009",
+    "contract_type": "employment",
+    "clause_type": "bonus",
+    "risk_level": "high",
+    "clause_text": "Employee forfeits all earned commissions and bonuses if employment ends before payment for any reason.",
+    "risk_rule": "Forfeiture of earned incentive compensation is high risk.",
+    "why_risky": "This may conflict with wage laws and create severe employee downside.",
+    "safe_version": "Distinguish earned from discretionary amounts and pay earned compensation as required by law.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "bonus",
+      "commission",
+      "forfeiture"
+    ]
   },
   {
-    "type": "severance",
-    "text": "Upon termination without cause, Employee shall receive severance equal to two (2) weeks of base salary for each year of completed service, up to a maximum of twelve (12) weeks.",
-    "risk_notes": "Reasonable severance formula. Benefits employee. Ensure 'without cause' is clearly defined.",
-    "standard_version": "Favorable to Employee"
+    "benchmark_id": "employment_010",
+    "contract_type": "employment",
+    "clause_type": "ip_assignment",
+    "risk_level": "low",
+    "clause_text": "Employee assigns inventions created within job duties or using company resources, excluding inventions developed entirely on personal time without company resources.",
+    "risk_rule": "IP assignment should be limited to work-related creations.",
+    "why_risky": "This protects company work product without overreaching into personal projects.",
+    "safe_version": "Limit assignment to company-related work and include statutory employee invention exclusions where applicable.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "ip",
+      "assignment",
+      "personal-projects"
+    ]
+  },
+  {
+    "benchmark_id": "employment_011",
+    "contract_type": "employment",
+    "clause_type": "ip_assignment",
+    "risk_level": "medium",
+    "clause_text": "Employee assigns all inventions conceived during employment that relate to the company business.",
+    "risk_rule": "Business-related assignment can be reasonable but needs personal-time carveouts.",
+    "why_risky": "Without exclusions, side projects may be unintentionally captured.",
+    "safe_version": "Add exclusions for inventions created on personal time without company resources and unrelated to company business.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "ip",
+      "assignment",
+      "scope"
+    ]
+  },
+  {
+    "benchmark_id": "employment_012",
+    "contract_type": "employment",
+    "clause_type": "ip_assignment",
+    "risk_level": "high",
+    "clause_text": "Employee assigns all inventions, ideas, and works created during employment, whether or not related to the company or created using company resources.",
+    "risk_rule": "Overbroad IP assignment captures personal work.",
+    "why_risky": "This can unfairly transfer unrelated side projects and may be unenforceable in some jurisdictions.",
+    "safe_version": "Restrict assignment to work product related to job duties, company business, or company resources.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "ip",
+      "overbroad",
+      "side-projects"
+    ]
+  },
+  {
+    "benchmark_id": "employment_013",
+    "contract_type": "employment",
+    "clause_type": "confidentiality",
+    "risk_level": "low",
+    "clause_text": "Employee must protect non-public company information and may use it only for authorized company business during and after employment.",
+    "risk_rule": "Employee confidentiality duties are standard when limited to non-public information.",
+    "why_risky": "The clause protects legitimate business information without restricting public knowledge.",
+    "safe_version": "Define confidential information and include standard exclusions.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "confidentiality",
+      "employee",
+      "non-public"
+    ]
+  },
+  {
+    "benchmark_id": "employment_014",
+    "contract_type": "employment",
+    "clause_type": "confidentiality",
+    "risk_level": "medium",
+    "clause_text": "Employee must keep all company information confidential forever.",
+    "risk_rule": "Forever protection for all company information is broad.",
+    "why_risky": "Routine or public information may be captured unnecessarily.",
+    "safe_version": "Limit confidentiality to non-public information and use indefinite protection only for trade secrets.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "confidentiality",
+      "perpetual",
+      "scope"
+    ]
+  },
+  {
+    "benchmark_id": "employment_015",
+    "contract_type": "employment",
+    "clause_type": "confidentiality",
+    "risk_level": "high",
+    "clause_text": "Employee may never use skills, knowledge, or experience gained during employment for any other employer.",
+    "risk_rule": "Confidentiality cannot block general skills and experience.",
+    "why_risky": "This operates like an overbroad non-compete and may restrict livelihood.",
+    "safe_version": "Exclude general skills, knowledge, and experience from confidential information.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "confidentiality",
+      "skills",
+      "non-compete"
+    ]
+  },
+  {
+    "benchmark_id": "employment_016",
+    "contract_type": "employment",
+    "clause_type": "non_compete",
+    "risk_level": "low",
+    "clause_text": "Employee agrees not to solicit company clients for six months after termination, limited to clients the employee materially served.",
+    "risk_rule": "Narrow non-solicitation can be more defensible than a broad non-compete.",
+    "why_risky": "The limitation is time-bound and tied to actual client relationships.",
+    "safe_version": "Use narrow non-solicit restrictions instead of broad employment bans.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "non-solicit",
+      "clients",
+      "post-employment"
+    ]
+  },
+  {
+    "benchmark_id": "employment_017",
+    "contract_type": "employment",
+    "clause_type": "non_compete",
+    "risk_level": "medium",
+    "clause_text": "Employee may not work for a direct competitor for six months in the territory where employee worked.",
+    "risk_rule": "A limited non-compete may still require careful legal review.",
+    "why_risky": "The restriction affects livelihood and enforceability varies by jurisdiction.",
+    "safe_version": "Limit by role, geography, duration, legitimate interest, and applicable law.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "non-compete",
+      "duration",
+      "territory"
+    ]
+  },
+  {
+    "benchmark_id": "employment_018",
+    "contract_type": "employment",
+    "clause_type": "non_compete",
+    "risk_level": "high",
+    "clause_text": "Employee may not work for any business that competes with the company anywhere in the world for two years.",
+    "risk_rule": "Global two-year non-competes are usually overbroad.",
+    "why_risky": "The clause can severely restrict employment opportunities and may be unenforceable.",
+    "safe_version": "Replace with narrow confidentiality and client non-solicit protections.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "non-compete",
+      "global",
+      "overbroad"
+    ]
+  },
+  {
+    "benchmark_id": "employment_019",
+    "contract_type": "employment",
+    "clause_type": "termination_notice",
+    "risk_level": "low",
+    "clause_text": "Either party may terminate employment with the notice required by applicable law or written agreement.",
+    "risk_rule": "Termination notice tied to law is standard.",
+    "why_risky": "It avoids waiving statutory notice or payment requirements.",
+    "safe_version": "State notice periods clearly and preserve statutory minimums.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "termination",
+      "notice",
+      "statutory"
+    ]
+  },
+  {
+    "benchmark_id": "employment_020",
+    "contract_type": "employment",
+    "clause_type": "termination_notice",
+    "risk_level": "medium",
+    "clause_text": "Employee must provide 60 days notice before resignation, unless the company waives the period.",
+    "risk_rule": "Long resignation notice can burden employees if not mutual or flexible.",
+    "why_risky": "The employee may be constrained from accepting other work.",
+    "safe_version": "Use a reasonable notice period and allow mutual written waiver.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "termination",
+      "resignation",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "employment_021",
+    "contract_type": "employment",
+    "clause_type": "termination_notice",
+    "risk_level": "high",
+    "clause_text": "Employee must continue working until the company hires and trains a replacement, regardless of duration.",
+    "risk_rule": "Indefinite resignation obligations are high risk.",
+    "why_risky": "The employee cannot predict when obligations end and may be trapped.",
+    "safe_version": "Use a fixed notice period with optional transition assistance by mutual agreement.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "termination",
+      "indefinite",
+      "replacement"
+    ]
+  },
+  {
+    "benchmark_id": "employment_022",
+    "contract_type": "employment",
+    "clause_type": "benefits",
+    "risk_level": "low",
+    "clause_text": "Employee is eligible for benefits under the company benefit plans, as amended from time to time and subject to plan documents.",
+    "risk_rule": "Benefit eligibility tied to plan documents is standard.",
+    "why_risky": "It preserves plan rules while informing the employee of eligibility.",
+    "safe_version": "Reference governing plan documents and provide access to current benefit summaries.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "benefits",
+      "plan-documents",
+      "eligibility"
+    ]
+  },
+  {
+    "benchmark_id": "employment_023",
+    "contract_type": "employment",
+    "clause_type": "benefits",
+    "risk_level": "medium",
+    "clause_text": "Benefits may be changed or withdrawn at any time in the company sole discretion.",
+    "risk_rule": "Reservation of rights is common but should respect vested and legal rights.",
+    "why_risky": "Employees need notice and clarity about benefit changes.",
+    "safe_version": "Allow prospective plan changes subject to plan documents, notice, and applicable law.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "benefits",
+      "discretion",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "employment_024",
+    "contract_type": "employment",
+    "clause_type": "benefits",
+    "risk_level": "high",
+    "clause_text": "Employee waives all statutory leave, insurance, and benefit rights by signing this agreement.",
+    "risk_rule": "Employees generally cannot waive statutory benefits wholesale.",
+    "why_risky": "This creates legal compliance and enforceability risk.",
+    "safe_version": "Remove waiver and state benefits will comply with applicable law and plan terms.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "benefits",
+      "waiver",
+      "statutory"
+    ]
+  },
+  {
+    "benchmark_id": "employment_025",
+    "contract_type": "employment",
+    "clause_type": "expense_reimbursement",
+    "risk_level": "low",
+    "clause_text": "The company will reimburse reasonable business expenses submitted with documentation under company policy within 30 days.",
+    "risk_rule": "Reimbursement process is clear and time-bound.",
+    "why_risky": "The employee knows what documentation is needed and when payment occurs.",
+    "safe_version": "State documentation requirements and reimbursement timeline.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "expenses",
+      "reimbursement",
+      "timeline"
+    ]
+  },
+  {
+    "benchmark_id": "employment_026",
+    "contract_type": "employment",
+    "clause_type": "expense_reimbursement",
+    "risk_level": "medium",
+    "clause_text": "The company may reimburse business expenses that management approves.",
+    "risk_rule": "Approval-only language can create uncertainty.",
+    "why_risky": "Employees may incur expenses without knowing reimbursement criteria.",
+    "safe_version": "Define reimbursable expense categories, approval process, and payment timeline.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "expenses",
+      "approval",
+      "policy"
+    ]
+  },
+  {
+    "benchmark_id": "employment_027",
+    "contract_type": "employment",
+    "clause_type": "expense_reimbursement",
+    "risk_level": "high",
+    "clause_text": "Employee is responsible for all expenses incurred while performing job duties unless the company decides otherwise.",
+    "risk_rule": "Shifting ordinary business expenses to employees is high risk.",
+    "why_risky": "This may violate labor rules and unfairly reduce compensation.",
+    "safe_version": "Reimburse necessary business expenses required for the job, subject to reasonable policy requirements.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "expenses",
+      "employee-pays",
+      "labor-law"
+    ]
+  },
+  {
+    "benchmark_id": "employment_028",
+    "contract_type": "employment",
+    "clause_type": "dispute_resolution",
+    "risk_level": "low",
+    "clause_text": "Employment disputes will be resolved under applicable law, and nothing limits rights that cannot be waived.",
+    "risk_rule": "Preserving non-waivable rights is important in employment dispute clauses.",
+    "why_risky": "The clause avoids overreach while providing a dispute process.",
+    "safe_version": "Include any arbitration or venue clause with statutory carveouts and fair procedures.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "dispute",
+      "rights",
+      "arbitration"
+    ]
+  },
+  {
+    "benchmark_id": "employment_029",
+    "contract_type": "employment",
+    "clause_type": "dispute_resolution",
+    "risk_level": "medium",
+    "clause_text": "All disputes must be arbitrated individually, and each party bears its own fees unless law requires otherwise.",
+    "risk_rule": "Individual arbitration can be enforceable but must be fair and legally compliant.",
+    "why_risky": "Fee allocation and waiver terms may affect enforceability.",
+    "safe_version": "Ensure arbitration costs and remedies comply with employment law and preserve non-waivable claims.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "dispute",
+      "arbitration",
+      "fees"
+    ]
+  },
+  {
+    "benchmark_id": "employment_030",
+    "contract_type": "employment",
+    "clause_type": "dispute_resolution",
+    "risk_level": "high",
+    "clause_text": "Employee waives the right to bring any claim against the company, including statutory employment claims.",
+    "risk_rule": "Broad claim waivers are high risk and often unenforceable.",
+    "why_risky": "This attempts to eliminate non-waivable employee rights.",
+    "safe_version": "Remove blanket waivers and use lawful dispute procedures that preserve statutory remedies.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "dispute",
+      "waiver",
+      "statutory-claims"
+    ]
   }
 ]

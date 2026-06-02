@@ -1,0 +1,17 @@
+{
+  "nda_definition_high": "high",
+  "nda_term_medium": "medium",
+  "nda_residuals_high": "high",
+  "nda_exceptions_low": "low",
+  "nda_remedies_high": "high",
+  "employment_ip_high": "high",
+  "employment_compensation_high": "high",
+  "employment_bonus_medium": "medium",
+  "employment_non_compete_high": "high",
+  "employment_expenses_low": "low",
+  "vendor_payment_high": "high",
+  "vendor_acceptance_low": "low",
+  "vendor_liability_high": "high",
+  "vendor_data_security_medium": "medium",
+  "vendor_ip_high": "high"
+}

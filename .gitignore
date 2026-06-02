@@ -32,6 +32,7 @@ pnpm-debug.log*
 # Local databases and generated vector stores
 backend/chroma_db/
 chroma_db/
+backend/uploads/
 *.sqlite
 *.sqlite3
 

@@ -10,7 +10,6 @@ Usage:
 """
 
 import argparse
-import json
 import logging
 import sys
 from pathlib import Path
@@ -23,8 +22,8 @@ from pipeline.rag_engine import (
     build_benchmark_store,
     get_collection_stats,
     get_benchmark_collection,
-    get_chroma_client,
 )
+from pipeline.benchmark_schema import load_benchmarks, validate_benchmarks
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,6 +48,33 @@ def show_stats():
     except Exception as e:
         logger.error(f"Failed to get stats: {e}")
         return None
+
+
+def validate_dataset():
+    """Validate benchmark JSON files before building embeddings."""
+    benchmarks = load_benchmarks()
+    errors, summary = validate_benchmarks(benchmarks)
+
+    print("\n" + "=" * 50)
+    print("Benchmark Dataset Validation")
+    print("=" * 50)
+    print(f"Total Benchmarks: {summary['total']}")
+    for contract_type, counts in summary["by_contract_type"].items():
+        print(
+            f"{contract_type}: "
+            f"high={counts.get('high', 0)}, "
+            f"medium={counts.get('medium', 0)}, "
+            f"low={counts.get('low', 0)}"
+        )
+    print(f"Metadata Complete: {summary['metadata_complete']}")
+    if errors:
+        print("Errors:")
+        for error in errors[:20]:
+            print(f"- {error}")
+        if len(errors) > 20:
+            print(f"- ... {len(errors) - 20} more")
+    print("=" * 50 + "\n")
+    return errors, summary
 
 
 def clear_collection():
@@ -91,8 +117,17 @@ def main():
         action="store_true",
         help="Clear collection without rebuilding",
     )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate benchmark JSON files only",
+    )
     
     args = parser.parse_args()
+
+    if args.validate:
+        errors, _ = validate_dataset()
+        return 1 if errors else 0
     
     # Show stats only
     if args.stats:
@@ -112,28 +147,33 @@ def main():
     
     # Clear if forced
     if args.force:
-        print("\n⚠️  Force flag set - clearing existing benchmarks...")
+        print("\nForce flag set - clearing existing benchmarks...")
         clear_collection()
     
     # Build the benchmark store
-    print("\n🔨 Building benchmark store...")
+    print("\nValidating benchmark dataset...")
+    errors, _ = validate_dataset()
+    if errors:
+        return 1
+
+    print("\nBuilding benchmark store...")
     print("-" * 50)
     
     try:
         result = build_benchmark_store()
         
         if result["status"] == "success":
-            print("\n✅ Build successful!")
+            print("\nBuild successful!")
             print(f"   Added: {result['added']} benchmarks")
             print(f"   Skipped: {result['skipped']} (already existed)")
             print(f"   Total in DB: {result['total_in_db']}")
         else:
-            print("\n❌ Build failed")
+            print("\nBuild failed")
             return 1
             
     except Exception as e:
         logger.error(f"Build failed: {e}")
-        print(f"\n❌ Build failed: {e}")
+        print(f"\nBuild failed: {e}")
         return 1
     
     # Show stats after build

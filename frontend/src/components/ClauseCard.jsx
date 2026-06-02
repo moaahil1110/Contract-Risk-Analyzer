@@ -16,8 +16,19 @@ const ClauseCard = ({ clause }) => {
     analysis_status,
     error_message,
     retrieved_benchmarks,
+    cited_benchmark_ids,
+    risk_rule_applied,
+    evidence_summary,
+    benchmark_alignment,
   } = clause;
   const isFailed = analysis_status === 'failed';
+  const alignmentStyles = {
+    strong: 'bg-green-50 text-green-700 border-green-200',
+    partial: 'bg-blue-50 text-blue-700 border-blue-200',
+    weak: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    none: 'bg-gray-50 text-gray-700 border-gray-200',
+  };
+  const safeAlignment = alignmentStyles[benchmark_alignment] ? benchmark_alignment : 'none';
 
   return (
     <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -31,6 +42,11 @@ const ClauseCard = ({ clause }) => {
           {isFailed && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-red-50 text-red-700 border-red-200">
               Analysis Failed
+            </span>
+          )}
+          {!isFailed && benchmark_alignment && (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${alignmentStyles[safeAlignment]}`}>
+              RAG {safeAlignment}
             </span>
           )}
           <h3 className="font-semibold text-gray-900">{clause_title}</h3>
@@ -94,6 +110,32 @@ const ClauseCard = ({ clause }) => {
             </div>
           )}
 
+          {(risk_rule_applied || evidence_summary || cited_benchmark_ids?.length > 0) && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">RAG Evidence</h4>
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-2">
+                {risk_rule_applied && (
+                  <p className="text-sm text-blue-900">
+                    <span className="font-semibold">Rule: </span>
+                    {risk_rule_applied}
+                  </p>
+                )}
+                {evidence_summary && (
+                  <p className="text-sm text-blue-900">
+                    <span className="font-semibold">Evidence: </span>
+                    {evidence_summary}
+                  </p>
+                )}
+                {cited_benchmark_ids?.length > 0 && (
+                  <p className="text-xs text-blue-800">
+                    <span className="font-semibold">Cited: </span>
+                    {cited_benchmark_ids.join(', ')}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Suggested Fix */}
           {suggested_fix && (
             <div>
@@ -111,10 +153,18 @@ const ClauseCard = ({ clause }) => {
                 {retrieved_benchmarks.slice(0, 3).map((benchmark, index) => (
                   <div key={benchmark.id || index} className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                     <p className="text-xs font-medium text-blue-900">
-                      {benchmark.contract_type || 'unknown'} / {benchmark.clause_type || 'unknown'} - similarity {benchmark.similarity ?? 'n/a'}
+                      {benchmark.benchmark_id || benchmark.id || `Benchmark ${index + 1}`} - {benchmark.contract_type || 'unknown'} / {benchmark.clause_type || 'unknown'} / {benchmark.risk_level || 'unknown'} - similarity {benchmark.similarity ?? 'n/a'}
                     </p>
-                    {benchmark.risk_notes && (
-                      <p className="text-xs text-blue-800 mt-1">{benchmark.risk_notes}</p>
+                    {(benchmark.risk_rule || benchmark.risk_notes) && (
+                      <p className="text-xs text-blue-800 mt-1">{benchmark.risk_rule || benchmark.risk_notes}</p>
+                    )}
+                    {benchmark.why_risky && (
+                      <p className="text-xs text-blue-700 mt-1">{benchmark.why_risky}</p>
+                    )}
+                    {benchmark.source_name && (
+                      <p className="text-[11px] text-blue-700 mt-2">
+                        Source: {benchmark.source_name}
+                      </p>
                     )}
                   </div>
                 ))}

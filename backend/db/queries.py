@@ -6,9 +6,10 @@ Week 3: Supabase database operations for contracts and clause analyses
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from db.supabase_client import get_supabase_client, is_supabase_configured
+from core.status import ACTIVE_JOB_STATUSES
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,16 @@ logger = logging.getLogger(__name__)
 # Contract Operations
 # =============================================================================
 
-async def create_contract(user_id: Optional[str], filename: str, contract_type: Optional[str] = None) -> Optional[Dict[str, Any]]:
+async def create_contract(
+    user_id: Optional[str],
+    filename: str,
+    contract_type: Optional[str] = None,
+    contract_id: Optional[str] = None,
+    storage_path: Optional[str] = None,
+    file_size_bytes: Optional[int] = None,
+    mime_type: Optional[str] = None,
+    status: str = "uploaded",
+) -> Optional[Dict[str, Any]]:
     """
     Create a new contract record in the database.
     
@@ -39,13 +49,19 @@ async def create_contract(user_id: Optional[str], filename: str, contract_type: 
     
     try:
         contract_data = {
+            "id": contract_id or str(uuid4()),
             "user_id": user_id,
             "filename": filename,
             "contract_type": contract_type or "other",
             "selected_contract_type": contract_type or "other",
             "detected_contract_type": contract_type or "other",
             "contract_type_confidence": 1.0 if contract_type else 0.0,
-            "status": "processing",
+            "status": status,
+            "storage_path": storage_path,
+            "file_size_bytes": file_size_bytes,
+            "mime_type": mime_type,
+            "progress_percent": 0,
+            "status_message": "Uploaded and ready for analysis",
             "uploaded_at": datetime.utcnow().isoformat(),
         }
         
@@ -97,6 +113,32 @@ async def update_contract_type_metadata(contract_id: str, type_metadata: Dict[st
         return False
 
 
+async def update_contract_storage_metadata(
+    contract_id: str,
+    storage_path: str,
+    file_size_bytes: int,
+    mime_type: Optional[str],
+) -> bool:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping update_contract_storage_metadata")
+        return False
+
+    client = get_supabase_client()
+    if not client:
+        return False
+
+    try:
+        result = client.table("contracts").update({
+            "storage_path": storage_path,
+            "file_size_bytes": file_size_bytes,
+            "mime_type": mime_type or "application/pdf",
+        }).eq("id", contract_id).execute()
+        return bool(result.data)
+    except Exception as e:
+        logger.error(f"Error updating contract storage metadata: {e}")
+        return False
+
+
 async def update_contract_status(contract_id: str, status: str) -> bool:
     """
     Update the status of a contract.
@@ -136,6 +178,43 @@ async def update_contract_status(contract_id: str, status: str) -> bool:
         return False
 
 
+async def update_contract_progress(
+    contract_id: str,
+    status: str,
+    progress_percent: int,
+    message: str,
+    error: Optional[str] = None,
+) -> bool:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping update_contract_progress")
+        return False
+
+    client = get_supabase_client()
+    if not client:
+        return False
+
+    try:
+        now = datetime.utcnow().isoformat()
+        update_data = {
+            "status": status,
+            "progress_percent": max(0, min(100, int(progress_percent))),
+            "status_message": message,
+            "error_message": error,
+        }
+        if status == "queued":
+            update_data["queued_at"] = now
+        if status in {"extracting", "retrieving_benchmarks", "analysing"}:
+            update_data["started_at"] = now
+        if status in {"complete", "failed"}:
+            update_data["completed_at"] = now
+
+        result = client.table("contracts").update(update_data).eq("id", contract_id).execute()
+        return bool(result.data)
+    except Exception as e:
+        logger.error(f"Error updating contract progress: {e}")
+        return False
+
+
 async def update_contract_results(
     contract_id: str,
     health_data: Dict[str, Any],
@@ -165,6 +244,9 @@ async def update_contract_results(
     try:
         update_data = {
             "status": "complete",
+            "progress_percent": 100,
+            "status_message": "Analysis complete",
+            "error_message": None,
             "health_score": health_data.get("score"),
             "health_grade": health_data.get("grade"),
             "health_label": health_data.get("label"),
@@ -190,6 +272,143 @@ async def update_contract_results(
     except Exception as e:
         logger.error(f"Error updating contract results: {e}")
         return False
+
+
+async def create_analysis_job(
+    contract_id: str,
+    celery_task_id: Optional[str] = None,
+    max_retries: int = 3,
+) -> Optional[Dict[str, Any]]:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping create_analysis_job")
+        return None
+
+    client = get_supabase_client()
+    if not client:
+        return None
+
+    try:
+        job_data = {
+            "contract_id": contract_id,
+            "celery_task_id": celery_task_id,
+            "status": "queued",
+            "current_stage": "queued",
+            "progress_percent": 0,
+            "attempts": 0,
+            "max_retries": max_retries,
+            "timings": {},
+            "metadata": {},
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        result = client.table("analysis_jobs").insert(job_data).execute()
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Error creating analysis job: {e}")
+        return None
+
+
+async def update_analysis_job(
+    job_id: str,
+    status: str,
+    stage: Optional[str] = None,
+    attempts: Optional[int] = None,
+    timings: Optional[Dict[str, Any]] = None,
+    error: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    celery_task_id: Optional[str] = None,
+) -> bool:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping update_analysis_job")
+        return False
+
+    client = get_supabase_client()
+    if not client:
+        return False
+
+    try:
+        now = datetime.utcnow().isoformat()
+        update_data: Dict[str, Any] = {
+            "status": status,
+            "updated_at": now,
+        }
+        if stage is not None:
+            update_data["current_stage"] = stage
+        if attempts is not None:
+            update_data["attempts"] = attempts
+        if timings is not None:
+            update_data["timings"] = timings
+        if metadata is not None:
+            update_data["metadata"] = metadata
+        if error is not None:
+            update_data["last_error"] = error
+        if celery_task_id is not None:
+            update_data["celery_task_id"] = celery_task_id
+        if status == "running":
+            update_data["started_at"] = now
+        if status in {"succeeded", "failed"}:
+            update_data["finished_at"] = now
+
+        result = client.table("analysis_jobs").update(update_data).eq("id", job_id).execute()
+        return bool(result.data)
+    except Exception as e:
+        logger.error(f"Error updating analysis job: {e}")
+        return False
+
+
+async def get_active_analysis_job(contract_id: str) -> Optional[Dict[str, Any]]:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping get_active_analysis_job")
+        return None
+
+    client = get_supabase_client()
+    if not client:
+        return None
+
+    try:
+        result = (
+            client.table("analysis_jobs")
+            .select("*")
+            .eq("contract_id", contract_id)
+            .in_("status", list(ACTIVE_JOB_STATUSES))
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Error getting active analysis job: {e}")
+        return None
+
+
+async def get_analysis_job_by_task_id(celery_task_id: str) -> Optional[Dict[str, Any]]:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping get_analysis_job_by_task_id")
+        return None
+
+    client = get_supabase_client()
+    if not client:
+        return None
+
+    try:
+        result = (
+            client.table("analysis_jobs")
+            .select("*")
+            .eq("celery_task_id", celery_task_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Error getting analysis job by task id: {e}")
+        return None
 
 
 async def get_contract(contract_id: str) -> Optional[Dict[str, Any]]:
@@ -346,6 +565,10 @@ async def save_clause_analysis(
             "error_message": clause_data.get("error_message"),
             "provider_used": clause_data.get("provider_used"),
             "retrieved_benchmarks": clause_data.get("retrieved_benchmarks", []),
+            "cited_benchmark_ids": clause_data.get("cited_benchmark_ids", []),
+            "risk_rule_applied": clause_data.get("risk_rule_applied", ""),
+            "evidence_summary": clause_data.get("evidence_summary", ""),
+            "benchmark_alignment": clause_data.get("benchmark_alignment", "none"),
             "created_at": datetime.utcnow().isoformat(),
         }
         
@@ -412,6 +635,10 @@ async def save_clause_analyses_batch(
                 "error_message": clause.get("error_message"),
                 "provider_used": clause.get("provider_used"),
                 "retrieved_benchmarks": clause.get("retrieved_benchmarks", []),
+                "cited_benchmark_ids": clause.get("cited_benchmark_ids", []),
+                "risk_rule_applied": clause.get("risk_rule_applied", ""),
+                "evidence_summary": clause.get("evidence_summary", ""),
+                "benchmark_alignment": clause.get("benchmark_alignment", "none"),
                 "created_at": datetime.utcnow().isoformat(),
             })
         

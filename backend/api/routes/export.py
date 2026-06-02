@@ -67,8 +67,8 @@ async def _load_report_data(contract_id: str) -> Optional[Dict[str, Any]]:
         "filename": record.get("filename", "contract.pdf"),
         "contract_type": record.get("contract_type", "unknown"),
         "status": "complete" if result else record.get("status", "unknown"),
-        "health": result.get("health") if result else None,
-        "clauses": result.get("clauses", []) if result else [],
+        "health": result.get("health") if result else record.get("health"),
+        "clauses": result.get("clauses", []) if result else record.get("analysis", []),
     }
 
 
@@ -130,6 +130,28 @@ def _build_report_lines(report: Dict[str, Any]) -> List[str]:
         lines.extend(_wrap_block(clause.get("plain_english", "No explanation provided."), width=92))
         lines.extend(["", "Risk Reason:"])
         lines.extend(_wrap_block(clause.get("risk_reason", "No risk reason provided."), width=92))
+        if clause.get("risk_rule_applied") or clause.get("evidence_summary") or clause.get("benchmark_alignment"):
+            lines.extend(["", "RAG Evidence:"])
+            lines.extend(_wrap_block(
+                f"Alignment: {clause.get('benchmark_alignment', 'none')}",
+                width=92,
+            ))
+            if clause.get("risk_rule_applied"):
+                lines.extend(_wrap_block(
+                    f"Rule Applied: {clause.get('risk_rule_applied')}",
+                    width=92,
+                ))
+            if clause.get("evidence_summary"):
+                lines.extend(_wrap_block(
+                    f"Evidence Summary: {clause.get('evidence_summary')}",
+                    width=92,
+                ))
+            cited_ids = clause.get("cited_benchmark_ids") or []
+            if cited_ids:
+                lines.extend(_wrap_block(
+                    f"Cited Benchmarks: {', '.join(str(item) for item in cited_ids)}",
+                    width=92,
+                ))
         lines.extend(["", "Key Concerns:"])
         if concerns:
             for concern in concerns:
@@ -147,10 +169,16 @@ def _build_report_lines(report: Dict[str, Any]) -> List[str]:
                     f"{benchmark.get('id', 'benchmark')} | "
                     f"{benchmark.get('contract_type', 'unknown')} | "
                     f"{benchmark.get('clause_type', 'unknown')} | "
+                    f"{benchmark.get('risk_level', 'unknown')} | "
                     f"similarity {benchmark.get('similarity', 'n/a')} | "
-                    f"{benchmark.get('risk_notes', '')}",
+                    f"{benchmark.get('risk_rule') or benchmark.get('risk_notes', '')}",
                     width=92,
                 ))
+                if benchmark.get("source_name"):
+                    lines.extend(_wrap_block(
+                        f"  Source: {benchmark.get('source_name')} ({benchmark.get('source_type', 'unknown')})",
+                        width=92,
+                    ))
         lines.extend(["", "-" * 92, ""])
 
     return lines

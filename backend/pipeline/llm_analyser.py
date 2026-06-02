@@ -75,14 +75,26 @@ def build_prompt(clause_text: str, benchmarks: List[Dict[str, Any]], contract_ty
     benchmark_text = ""
     for i, bench in enumerate(benchmarks[:3], 1):
         # Safely extract values and convert to strings to avoid type errors
-        bench_text = str(bench.get('text', ''))[:300]
-        risk_notes = str(bench.get('risk_notes', ''))
-        standard_version = str(bench.get('standard_version', ''))
+        benchmark_id = str(bench.get("benchmark_id") or bench.get("id") or f"benchmark_{i}")
+        bench_text = str(bench.get("clause_text") or bench.get("text", ""))[:450]
+        risk_level = str(bench.get("risk_level", "unknown"))
+        risk_rule = str(bench.get("risk_rule", ""))
+        why_risky = str(bench.get("why_risky") or bench.get("risk_notes", ""))
+        safe_version = str(bench.get("safe_version", ""))
+        source_name = str(bench.get("source_name") or bench.get("standard_version", ""))
+        similarity = bench.get("similarity", "n/a")
         
         benchmark_text += f"\nBenchmark {i}:\n"
+        benchmark_text += f"  ID: {benchmark_id}\n"
+        benchmark_text += f"  Contract Type: {bench.get('contract_type', 'unknown')}\n"
+        benchmark_text += f"  Clause Type: {bench.get('clause_type', 'unknown')}\n"
+        benchmark_text += f"  Benchmark Risk Level: {risk_level}\n"
+        benchmark_text += f"  Similarity: {similarity}\n"
         benchmark_text += f"  Text: {bench_text}...\n"
-        benchmark_text += f"  Risk Notes: {risk_notes}\n"
-        benchmark_text += f"  Standard: {standard_version}\n"
+        benchmark_text += f"  Risk Rule: {risk_rule}\n"
+        benchmark_text += f"  Why It Matters: {why_risky}\n"
+        benchmark_text += f"  Safer Version: {safe_version}\n"
+        benchmark_text += f"  Source: {source_name}\n"
     
     prompt = f"""You are a legal contract risk analyst. Analyze the following contract clause and compare it against standard industry benchmarks.
 
@@ -102,7 +114,11 @@ Analyze this clause and respond with ONLY a valid JSON object in this exact form
   "risk_reason": "2-3 sentences explaining the specific legal/financial risks",
   "plain_english": "Explain this clause in simple, non-legal language that a layperson would understand",
   "key_concerns": ["concern 1", "concern 2", "concern 3"],
-  "suggested_fix": "Provide a rewritten, safer version of this clause"
+  "suggested_fix": "Provide a rewritten, safer version of this clause",
+  "cited_benchmark_ids": ["benchmark_id_1", "benchmark_id_2"],
+  "risk_rule_applied": "The specific benchmark rule or legal/commercial standard used",
+  "evidence_summary": "1-2 sentences explaining how retrieved benchmarks support the risk decision",
+  "benchmark_alignment": "strong|partial|weak|none"
 }}
 
 IMPORTANT RULES:
@@ -110,9 +126,12 @@ IMPORTANT RULES:
 2. risk_level must be exactly "low", "medium", or "high"
 3. risk_score must be an integer between 0 and 100
 4. key_concerns must be an array of strings (1-4 items)
-5. If benchmarks show this is standard language, score should be low (0-40)
-6. If benchmarks show this is overly broad or risky, score should be high (70-100)
-7. Consider the contract type context when assessing risk
+5. cited_benchmark_ids must only contain IDs from the retrieved benchmarks shown above
+6. benchmark_alignment must describe how directly the benchmarks support your decision
+7. If benchmarks show this is standard language, score should be low (0-40)
+8. If benchmarks show this is overly broad or risky, score should be high (70-100)
+9. Consider the contract type context when assessing risk
+10. If no benchmark directly applies, set benchmark_alignment to "weak" or "none" and explain the gap
 
 Respond with JSON only:"""
     
@@ -186,6 +205,10 @@ def validate_response(response: Dict[str, Any]) -> bool:
         "plain_english",
         "key_concerns",
         "suggested_fix",
+        "cited_benchmark_ids",
+        "risk_rule_applied",
+        "evidence_summary",
+        "benchmark_alignment",
     ]
     
     for field in required_fields:
@@ -212,8 +235,25 @@ def validate_response(response: Dict[str, Any]) -> bool:
     if not isinstance(response["key_concerns"], list):
         logger.warning(f"key_concerns is not a list: {type(response['key_concerns'])}")
         return False
+
+    if not isinstance(response["cited_benchmark_ids"], list):
+        logger.warning(f"cited_benchmark_ids is not a list: {type(response['cited_benchmark_ids'])}")
+        return False
+
+    if response["benchmark_alignment"] not in ["strong", "partial", "weak", "none"]:
+        logger.warning(f"Invalid benchmark_alignment: {response['benchmark_alignment']}")
+        return False
     
     return True
+
+
+def _evidence_failure_fields() -> Dict[str, Any]:
+    return {
+        "cited_benchmark_ids": [],
+        "risk_rule_applied": "",
+        "evidence_summary": "No benchmark-supported analysis was produced.",
+        "benchmark_alignment": "none",
+    }
 
 
 def _try_groq(prompt: str) -> Optional[str]:
@@ -379,6 +419,7 @@ async def analyse_clause(
             "retry_count": 0,
             "error_message": str(e),
             "provider_used": "error",
+            **_evidence_failure_fields(),
         }
     
     # Provider chain with fallbacks
@@ -437,6 +478,7 @@ async def analyse_clause(
         "retry_count": failed_attempts,
         "error_message": last_error or "All LLM providers failed",
         "provider_used": "fallback",
+        **_evidence_failure_fields(),
     }
 
 
@@ -458,9 +500,13 @@ if __name__ == "__main__":
     test_clause = "Employee shall indemnify Company against all claims regardless of cause or fault."
     test_benchmarks = [
         {
-            "text": "Vendor shall indemnify Customer against third-party claims arising from Vendor's breach.",
-            "risk_notes": "Standard indemnification. Fair and reasonable.",
-            "standard_version": "Standard",
+            "benchmark_id": "vendor_016",
+            "clause_text": "Vendor shall indemnify Customer against third-party claims arising from Vendor's breach.",
+            "risk_rule": "Indemnity should be limited to defined third-party claims.",
+            "why_risky": "Standard indemnification. Fair and reasonable.",
+            "safe_version": "Limit indemnity to third-party claims with notice and control rights.",
+            "risk_level": "low",
+            "source_name": "Curated Contract Risk Benchmark Library v1",
             "clause_type": "indemnification",
         }
     ]

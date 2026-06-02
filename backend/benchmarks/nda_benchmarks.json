@@ -1,62 +1,602 @@
 [
   {
-    "type": "definition",
-    "text": "'Confidential Information' means any and all non-public, proprietary, confidential or trade secret information of the Disclosing Party, including but not limited to technical data, know-how, research, product plans, software code, software documentation, customer lists, pricing information, and business strategies.",
-    "risk_notes": "Standard broad definition. Low risk if mutual. High risk if one-sided covers all information regardless of confidentiality markings.",
-    "standard_version": "Mutual NDA"
+    "benchmark_id": "nda_001",
+    "contract_type": "nda",
+    "clause_type": "definition",
+    "risk_level": "low",
+    "clause_text": "Confidential Information means non-public information disclosed in writing and marked confidential, or oral information confirmed as confidential within 30 days.",
+    "risk_rule": "Definition requires marking or confirmation and limits ambiguity.",
+    "why_risky": "Balanced confidentiality definitions reduce disputes about what was actually protected.",
+    "safe_version": "Confidential Information should mean non-public information clearly marked confidential or reasonably understood as confidential from context.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "definition",
+      "confidential-information",
+      "scope"
+    ]
   },
   {
-    "type": "definition",
-    "text": "'Confidential Information' means any information disclosed by the Disclosing Party to the Receiving Party, either orally or in writing, that is designated as confidential at the time of disclosure or that reasonably should be understood to be confidential.",
-    "risk_notes": "Balanced definition requiring marking or obvious confidentiality. Reduces ambiguity but may miss unmarked sensitive info.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_002",
+    "contract_type": "nda",
+    "clause_type": "definition",
+    "risk_level": "medium",
+    "clause_text": "Confidential Information includes all information disclosed by either party, whether or not marked confidential.",
+    "risk_rule": "Broad definitions without marking rules can capture routine business discussions.",
+    "why_risky": "This may be workable in a mutual NDA, but the absence of marking or context limits can create disputes.",
+    "safe_version": "Limit Confidential Information to non-public information marked confidential or reasonably understood as confidential.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "definition",
+      "marking",
+      "scope"
+    ]
   },
   {
-    "type": "exclusions",
-    "text": "Confidential Information shall not include information that: (i) is or becomes publicly available through no breach of this Agreement; (ii) was rightfully in Receiving Party's possession prior to disclosure; (iii) is rightfully disclosed to Receiving Party by a third party without restriction; or (iv) is independently developed by Receiving Party without use of Confidential Information.",
-    "risk_notes": "Standard exclusions. Fair and balanced. Ensure independent development has provable documentation.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_003",
+    "contract_type": "nda",
+    "clause_type": "definition",
+    "risk_level": "high",
+    "clause_text": "Confidential Information means all information known by the receiving party about the disclosing party, whether learned before or after this Agreement.",
+    "risk_rule": "Definitions should not retroactively capture everything known by a party.",
+    "why_risky": "This can convert ordinary prior knowledge into restricted information and create impossible compliance obligations.",
+    "safe_version": "Exclude information already known, public information, independently developed information, and information received lawfully from others.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "definition",
+      "overbroad",
+      "prior-knowledge"
+    ]
   },
   {
-    "type": "obligations",
-    "text": "Receiving Party agrees to hold all Confidential Information in strict confidence and not disclose to any third parties except to those employees and contractors who have a need to know and are bound by confidentiality obligations.",
-    "risk_notes": "Standard obligation clause. Reasonable. Low risk.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_004",
+    "contract_type": "nda",
+    "clause_type": "term",
+    "risk_level": "low",
+    "clause_text": "This Agreement remains in effect for two years, and confidentiality obligations continue for three years after disclosure.",
+    "risk_rule": "Finite confidentiality periods are standard for ordinary business information.",
+    "why_risky": "A defined period gives both sides predictable obligations and reduces stale compliance risk.",
+    "safe_version": "Use a fixed survival period, with trade secrets protected for as long as they remain trade secrets under law.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "term",
+      "survival",
+      "duration"
+    ]
   },
   {
-    "type": "obligations",
-    "text": "Receiving Party shall not use Confidential Information for any purpose other than evaluating a potential business relationship with the Disclosing Party.",
-    "risk_notes": "Purpose limitation clause. Protects disclosing party. Should have time limit tied to NDA term.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_005",
+    "contract_type": "nda",
+    "clause_type": "term",
+    "risk_level": "medium",
+    "clause_text": "Confidentiality obligations continue for five years after termination, except trade secrets remain protected while legally protected.",
+    "risk_rule": "Longer survival periods can be reasonable but should separate trade secrets from ordinary information.",
+    "why_risky": "Five years may be acceptable for sensitive business information, but it can be burdensome for routine materials.",
+    "safe_version": "Use three to five years for ordinary confidential information and indefinite protection only for trade secrets.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "term",
+      "survival",
+      "trade-secrets"
+    ]
   },
   {
-    "type": "term",
-    "text": "This Agreement shall remain in effect for a period of two (2) years from the Effective Date.",
-    "risk_notes": "Fixed term NDA. Reasonable. Consider if survival period for trade secrets is needed.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_006",
+    "contract_type": "nda",
+    "clause_type": "term",
+    "risk_level": "high",
+    "clause_text": "The receiving party shall maintain all information in confidence forever, regardless of whether it becomes public or independently developed.",
+    "risk_rule": "Perpetual confidentiality should not apply to all information without exceptions.",
+    "why_risky": "This creates indefinite obligations even for information that should no longer be protected.",
+    "safe_version": "Limit perpetual protection to trade secrets and include public-domain, prior-knowledge, and independent-development exclusions.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "term",
+      "perpetual",
+      "exceptions"
+    ]
   },
   {
-    "type": "return",
-    "text": "Upon termination of this Agreement, Receiving Party shall promptly return or destroy all Confidential Information and certify such return or destruction in writing upon request.",
-    "risk_notes": "Standard return/destruction clause. Allow keeping one copy for legal compliance purposes.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_007",
+    "contract_type": "nda",
+    "clause_type": "permitted_use",
+    "risk_level": "low",
+    "clause_text": "The receiving party may use Confidential Information solely to evaluate or perform the proposed business relationship.",
+    "risk_rule": "Purpose-limited use is standard in NDAs.",
+    "why_risky": "The permitted purpose is clear and tied to the parties business relationship.",
+    "safe_version": "State the permitted purpose clearly and prohibit use outside that purpose.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "permitted-use",
+      "purpose",
+      "nda"
+    ]
   },
   {
-    "type": "remedies",
-    "text": "Receiving Party acknowledges that breach of this Agreement may cause irreparable harm and Disclosing Party is entitled to seek injunctive relief in addition to all other remedies.",
-    "risk_notes": "Standard injunctive relief clause. Typical for NDAs. Low risk.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_008",
+    "contract_type": "nda",
+    "clause_type": "permitted_use",
+    "risk_level": "medium",
+    "clause_text": "The receiving party may use Confidential Information for internal business purposes related to discussions between the parties.",
+    "risk_rule": "Internal business purposes can be too vague without a specific transaction or project.",
+    "why_risky": "The phrase may allow broader use than intended and weaken confidentiality controls.",
+    "safe_version": "Define the permitted purpose as evaluating, negotiating, or performing a specific transaction or project.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "permitted-use",
+      "internal-use",
+      "scope"
+    ]
   },
   {
-    "type": "no_license",
-    "text": "Nothing in this Agreement grants any license or rights to any intellectual property of the Disclosing Party.",
-    "risk_notes": "Standard protection clause. Ensures no IP transfer through disclosure. Low risk.",
-    "standard_version": "Standard NDA"
+    "benchmark_id": "nda_009",
+    "contract_type": "nda",
+    "clause_type": "permitted_use",
+    "risk_level": "high",
+    "clause_text": "The receiving party may use Confidential Information for any business purpose that does not directly compete with the disclosing party.",
+    "risk_rule": "Permitted use should not allow unrelated business exploitation.",
+    "why_risky": "This lets the receiving party benefit from confidential material outside the deal context.",
+    "safe_version": "Restrict use to the specific evaluation or performance purpose and prohibit unrelated commercial use.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "permitted-use",
+      "overbroad",
+      "competition"
+    ]
   },
   {
-    "type": "definition",
-    "text": "'Confidential Information' means any information relating to the business, products, services, customers, suppliers, or financial matters of the Company, whether written, oral, or electronic, and regardless of whether marked as confidential.",
-    "risk_notes": "OVERBROAD - captures all information regardless of actual confidentiality. High risk for receiving party.",
-    "standard_version": "Overly Broad"
+    "benchmark_id": "nda_010",
+    "contract_type": "nda",
+    "clause_type": "disclosure",
+    "risk_level": "low",
+    "clause_text": "Disclosure is permitted to employees, advisors, and affiliates who need to know and are bound by confidentiality obligations at least as protective as this Agreement.",
+    "risk_rule": "Need-to-know disclosure with matching confidentiality duties is standard.",
+    "why_risky": "The clause enables practical review while preserving protection.",
+    "safe_version": "Require need-to-know access and written or professional confidentiality obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "disclosure",
+      "need-to-know",
+      "representatives"
+    ]
+  },
+  {
+    "benchmark_id": "nda_011",
+    "contract_type": "nda",
+    "clause_type": "disclosure",
+    "risk_level": "medium",
+    "clause_text": "Disclosure is permitted to representatives who are informed of the confidential nature of the information.",
+    "risk_rule": "Notice alone may not create enforceable confidentiality duties.",
+    "why_risky": "Representatives may receive sensitive information without being contractually bound.",
+    "safe_version": "Require representatives to be bound by confidentiality duties and make the receiving party responsible for breaches.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "disclosure",
+      "representatives",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "nda_012",
+    "contract_type": "nda",
+    "clause_type": "disclosure",
+    "risk_level": "high",
+    "clause_text": "The receiving party may disclose Confidential Information to any contractor, partner, or investor without further consent.",
+    "risk_rule": "Third-party disclosure should be controlled and limited.",
+    "why_risky": "This can spread confidential information broadly without enforceable safeguards.",
+    "safe_version": "Limit disclosure to need-to-know recipients bound by written confidentiality obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "disclosure",
+      "third-party",
+      "uncontrolled"
+    ]
+  },
+  {
+    "benchmark_id": "nda_013",
+    "contract_type": "nda",
+    "clause_type": "return_destroy",
+    "risk_level": "low",
+    "clause_text": "Upon request, the receiving party will return or destroy Confidential Information, except archival copies retained for legal compliance.",
+    "risk_rule": "Return/destruction with compliance carveouts is balanced.",
+    "why_risky": "It protects the disclosing party while allowing required record retention.",
+    "safe_version": "Include return or destruction duties plus narrow legal, archival, and backup exceptions.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "return",
+      "destruction",
+      "records"
+    ]
+  },
+  {
+    "benchmark_id": "nda_014",
+    "contract_type": "nda",
+    "clause_type": "return_destroy",
+    "risk_level": "medium",
+    "clause_text": "Upon termination, the receiving party will use commercially reasonable efforts to destroy Confidential Information.",
+    "risk_rule": "Commercially reasonable efforts can be acceptable but may lack verification.",
+    "why_risky": "The disclosing party may have limited assurance that information was actually removed.",
+    "safe_version": "Require certification of destruction on request, with reasonable backup and legal retention exceptions.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "return",
+      "destruction",
+      "certification"
+    ]
+  },
+  {
+    "benchmark_id": "nda_015",
+    "contract_type": "nda",
+    "clause_type": "return_destroy",
+    "risk_level": "high",
+    "clause_text": "The receiving party may retain all Confidential Information indefinitely for its business records.",
+    "risk_rule": "Retention should be limited and justified.",
+    "why_risky": "Indefinite retention defeats core NDA protections and increases breach exposure.",
+    "safe_version": "Permit only archival/legal retention and require ongoing confidentiality for retained copies.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "return",
+      "retention",
+      "indefinite"
+    ]
+  },
+  {
+    "benchmark_id": "nda_016",
+    "contract_type": "nda",
+    "clause_type": "residuals",
+    "risk_level": "low",
+    "clause_text": "No residual knowledge license is granted, and the receiving party may not intentionally memorize Confidential Information to avoid this Agreement.",
+    "risk_rule": "No residuals clause protects disclosed information.",
+    "why_risky": "It prevents implied use rights for sensitive technical or commercial information.",
+    "safe_version": "State that no license or residual use right is granted except as expressly permitted.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "residuals",
+      "license",
+      "use"
+    ]
+  },
+  {
+    "benchmark_id": "nda_017",
+    "contract_type": "nda",
+    "clause_type": "residuals",
+    "risk_level": "medium",
+    "clause_text": "The receiving party may use unaided memories retained by personnel, provided it does not disclose source materials.",
+    "risk_rule": "Residuals clauses can be acceptable for general know-how but risky for technical secrets.",
+    "why_risky": "This may allow use of valuable information without clear boundaries.",
+    "safe_version": "Limit residuals to general skills and exclude trade secrets, source code, customer lists, pricing, and technical designs.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "residuals",
+      "memory",
+      "know-how"
+    ]
+  },
+  {
+    "benchmark_id": "nda_018",
+    "contract_type": "nda",
+    "clause_type": "residuals",
+    "risk_level": "high",
+    "clause_text": "The receiving party may freely use any ideas, concepts, know-how, or techniques retained in memory after reviewing Confidential Information.",
+    "risk_rule": "Broad residuals rights can swallow the confidentiality obligation.",
+    "why_risky": "This can permit exploitation of protected technical or strategic information.",
+    "safe_version": "Delete the residuals right or narrowly limit it to general professional skills excluding confidential specifics.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "residuals",
+      "overbroad",
+      "know-how"
+    ]
+  },
+  {
+    "benchmark_id": "nda_019",
+    "contract_type": "nda",
+    "clause_type": "remedies",
+    "risk_level": "low",
+    "clause_text": "The parties acknowledge that unauthorized disclosure may cause irreparable harm and that injunctive relief may be available subject to court approval.",
+    "risk_rule": "Equitable relief language subject to court approval is common.",
+    "why_risky": "It preserves remedies without automatically proving entitlement.",
+    "safe_version": "Keep injunctive relief subject to applicable law and court discretion.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "remedies",
+      "injunction",
+      "equity"
+    ]
+  },
+  {
+    "benchmark_id": "nda_020",
+    "contract_type": "nda",
+    "clause_type": "remedies",
+    "risk_level": "medium",
+    "clause_text": "The disclosing party is automatically entitled to injunctive relief for any breach of this Agreement.",
+    "risk_rule": "Automatic entitlement language may overstate available remedies.",
+    "why_risky": "Courts usually require proof of harm and legal standards for injunctions.",
+    "safe_version": "Say injunctive relief may be sought, subject to court approval and applicable law.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "remedies",
+      "automatic",
+      "injunction"
+    ]
+  },
+  {
+    "benchmark_id": "nda_021",
+    "contract_type": "nda",
+    "clause_type": "remedies",
+    "risk_level": "high",
+    "clause_text": "For any breach, the receiving party must pay liquidated damages of $1,000,000 plus all consequential damages.",
+    "risk_rule": "Punitive or disproportionate liquidated damages can be unenforceable and commercially severe.",
+    "why_risky": "This creates extreme financial exposure unrelated to actual harm.",
+    "safe_version": "Use actual damages and equitable relief, or a reasonable liquidated amount tied to anticipated harm.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "remedies",
+      "liquidated-damages",
+      "consequential"
+    ]
+  },
+  {
+    "benchmark_id": "nda_022",
+    "contract_type": "nda",
+    "clause_type": "exceptions",
+    "risk_level": "low",
+    "clause_text": "Confidential Information excludes information already known, publicly available, independently developed, or lawfully received without confidentiality duty.",
+    "risk_rule": "Standard exclusions prevent overreach.",
+    "why_risky": "They ensure the NDA protects only information that deserves confidential treatment.",
+    "safe_version": "Include prior knowledge, public domain, independent development, and lawful third-party receipt exclusions.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "exceptions",
+      "public-domain",
+      "prior-knowledge"
+    ]
+  },
+  {
+    "benchmark_id": "nda_023",
+    "contract_type": "nda",
+    "clause_type": "exceptions",
+    "risk_level": "medium",
+    "clause_text": "Confidential Information excludes information that becomes publicly available through no fault of the receiving party.",
+    "risk_rule": "Public-domain exclusion helps but is incomplete alone.",
+    "why_risky": "Missing prior-knowledge and independent-development exclusions can still overreach.",
+    "safe_version": "Add exclusions for prior knowledge, independent development, and lawful third-party receipt.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "exceptions",
+      "public-domain",
+      "incomplete"
+    ]
+  },
+  {
+    "benchmark_id": "nda_024",
+    "contract_type": "nda",
+    "clause_type": "exceptions",
+    "risk_level": "high",
+    "clause_text": "No exceptions apply to Confidential Information, even if it becomes public or was previously known.",
+    "risk_rule": "NDAs need standard exclusions.",
+    "why_risky": "Without exclusions, the receiving party may be liable for information it did not wrongfully obtain or disclose.",
+    "safe_version": "Add standard exclusions for public information, prior knowledge, independent development, and lawful third-party receipt.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "exceptions",
+      "missing",
+      "overbroad"
+    ]
+  },
+  {
+    "benchmark_id": "nda_025",
+    "contract_type": "nda",
+    "clause_type": "assignment",
+    "risk_level": "low",
+    "clause_text": "Neither party may assign this Agreement without consent, except to a successor in connection with merger or sale of substantially all assets.",
+    "risk_rule": "Assignment with successor carveout is standard.",
+    "why_risky": "It protects relationship expectations while allowing business continuity.",
+    "safe_version": "Permit assignment to successors while requiring notice or consent for other assignments.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "assignment",
+      "successor",
+      "consent"
+    ]
+  },
+  {
+    "benchmark_id": "nda_026",
+    "contract_type": "nda",
+    "clause_type": "assignment",
+    "risk_level": "medium",
+    "clause_text": "Either party may assign this Agreement to an affiliate upon notice to the other party.",
+    "risk_rule": "Affiliate assignment can be acceptable but may shift obligations to unknown entities.",
+    "why_risky": "The counterparty may lose control over who handles confidential information.",
+    "safe_version": "Permit affiliate assignment only if the assigning party remains responsible or the assignee has adequate safeguards.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "assignment",
+      "affiliate",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "nda_027",
+    "contract_type": "nda",
+    "clause_type": "assignment",
+    "risk_level": "high",
+    "clause_text": "The receiving party may assign this Agreement and disclose Confidential Information to any successor, affiliate, or purchaser without notice.",
+    "risk_rule": "Assignment and disclosure should not be unlimited.",
+    "why_risky": "Confidential information could move to parties the disclosing party never vetted.",
+    "safe_version": "Require consent or narrow successor assignment with notice and continuing confidentiality obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "assignment",
+      "unlimited",
+      "disclosure"
+    ]
+  },
+  {
+    "benchmark_id": "nda_028",
+    "contract_type": "nda",
+    "clause_type": "governing_law",
+    "risk_level": "low",
+    "clause_text": "This Agreement is governed by the laws of the state specified by the parties, without regard to conflict-of-law rules.",
+    "risk_rule": "A clear governing law clause improves predictability.",
+    "why_risky": "The clause helps parties understand which law applies to disputes.",
+    "safe_version": "Specify governing law and, if useful, venue for disputes.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "governing-law",
+      "venue",
+      "disputes"
+    ]
+  },
+  {
+    "benchmark_id": "nda_029",
+    "contract_type": "nda",
+    "clause_type": "governing_law",
+    "risk_level": "medium",
+    "clause_text": "This Agreement is governed by applicable law.",
+    "risk_rule": "Generic governing law language can be ambiguous.",
+    "why_risky": "Parties may dispute which law applies, increasing litigation cost.",
+    "safe_version": "Name a specific jurisdiction and consider an exclusive venue clause.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "governing-law",
+      "ambiguous",
+      "venue"
+    ]
+  },
+  {
+    "benchmark_id": "nda_030",
+    "contract_type": "nda",
+    "clause_type": "governing_law",
+    "risk_level": "high",
+    "clause_text": "The disclosing party may choose the governing law and venue after a dispute arises.",
+    "risk_rule": "One-sided post-dispute law selection is unfair and unpredictable.",
+    "why_risky": "The receiving party cannot assess legal exposure when signing.",
+    "safe_version": "Specify governing law and venue in the agreement before any dispute.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "governing-law",
+      "one-sided",
+      "post-dispute"
+    ]
   }
 ]

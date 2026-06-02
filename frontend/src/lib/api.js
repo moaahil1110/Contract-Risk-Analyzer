@@ -1,6 +1,26 @@
 // API integration for Contract Risk Analyzer
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const REQUEST_TIMEOUT_MS = 30000
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Check that the backend is running and try again.')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
 
 // Get auth token from Supabase session
 const getAuthHeaders = async () => {
@@ -17,7 +37,7 @@ export const uploadContract = async (file, contractType) => {
   formData.append('file', file)
   formData.append('contract_type', contractType)
 
-  const response = await fetch(`${API_URL}/api/v1/upload`, {
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/upload`, {
     method: 'POST',
     headers,
     body: formData,
@@ -33,7 +53,7 @@ export const uploadContract = async (file, contractType) => {
 
 export const startAnalysis = async (contractId) => {
   const headers = await getAuthHeaders()
-  const response = await fetch(`${API_URL}/api/v1/analyse/${contractId}`, {
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/analyse/${contractId}`, {
     method: 'POST',
     headers: {
       ...headers,
@@ -51,7 +71,7 @@ export const startAnalysis = async (contractId) => {
 
 export const getAnalysis = async (contractId) => {
   const headers = await getAuthHeaders()
-  const response = await fetch(`${API_URL}/api/v1/analyse/${contractId}`, {
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/analyse/${contractId}`, {
     headers,
   })
 
@@ -63,9 +83,23 @@ export const getAnalysis = async (contractId) => {
   return response.json()
 }
 
+export const getAnalysisStatus = async (contractId) => {
+  const headers = await getAuthHeaders()
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/analyse/${contractId}/status`, {
+    headers,
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Failed to fetch analysis status')
+  }
+
+  return response.json()
+}
+
 export const getHistory = async () => {
   const headers = await getAuthHeaders()
-  const response = await fetch(`${API_URL}/api/v1/history`, {
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/history`, {
     headers,
   })
 
@@ -79,7 +113,7 @@ export const getHistory = async () => {
 
 export const exportReport = async (contractId) => {
   const headers = await getAuthHeaders()
-  const response = await fetch(`${API_URL}/api/v1/export/${contractId}`, {
+  const response = await fetchWithTimeout(`${API_URL}/api/v1/export/${contractId}`, {
     headers,
   })
 
@@ -102,13 +136,13 @@ export const exportReport = async (contractId) => {
 export const pollUntilComplete = async (contractId, onUpdate, onComplete, onError) => {
   const poll = async () => {
     try {
-      const data = await getAnalysis(contractId)
+      const data = await getAnalysisStatus(contractId)
       
       if (onUpdate) {
         onUpdate(data)
       }
 
-      if (data.status === 'complete') {
+      if (data.has_results || data.status === 'complete') {
         if (onComplete) {
           onComplete(data)
         }

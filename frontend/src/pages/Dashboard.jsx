@@ -17,11 +17,24 @@ import {
 
 const progressStages = [
   { key: 'upload', label: 'Uploading PDF' },
+  { key: 'queued', label: 'Queued' },
   { key: 'extract', label: 'Extracting clauses' },
+  { key: 'retrieve', label: 'Retrieving benchmarks' },
   { key: 'analyse', label: 'Analyzing risks' },
   { key: 'save', label: 'Saving results' },
   { key: 'complete', label: 'Complete' },
 ];
+
+const statusToStage = {
+  uploaded: 'upload',
+  queued: 'queued',
+  extracting: 'extract',
+  clauses_extracted: 'extract',
+  retrieving_benchmarks: 'retrieve',
+  analysing: 'analyse',
+  saving_results: 'save',
+  complete: 'complete',
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -93,30 +106,24 @@ const Dashboard = () => {
     setAnalysisStatus('Uploading PDF...');
 
     try {
-      setCurrentStage('extract');
-      setAnalysisStatus('Uploading PDF and extracting clauses...');
+      setAnalysisStatus('Uploading PDF...');
       const uploadResponse = await uploadContract(file, contractType);
       setContractId(uploadResponse.contract_id);
       setAnalyzing(true);
-      setCurrentStage('analyse');
+      setCurrentStage('queued');
       setAnalysisStatus('Starting analysis...');
 
       // Start backend analysis before polling for completed results
       await startAnalysis(uploadResponse.contract_id);
-      setCurrentStage('analyse');
-      setAnalysisStatus('Analyzing contract...');
+      setCurrentStage('queued');
+      setAnalysisStatus('Analysis queued');
 
       // Poll for results
       pollUntilComplete(
         uploadResponse.contract_id,
         (data) => {
-          if (data.status === 'complete') {
-            setCurrentStage('save');
-            setAnalysisStatus('Saving results...');
-          } else {
-            setCurrentStage('analyse');
-            setAnalysisStatus('Analyzing contract...');
-          }
+          setCurrentStage(statusToStage[data.status] || data.current_stage || 'analyse');
+          setAnalysisStatus(data.status_message || 'Analyzing contract...');
         },
         (data) => {
           setCurrentStage('complete');
@@ -265,7 +272,7 @@ const Dashboard = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
                   {progressStages.map((stage, index) => {
                     const isComplete = currentStage === 'complete' || index < currentStageIndex;
                     const isCurrent = index === currentStageIndex && currentStage !== 'complete';

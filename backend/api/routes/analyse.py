@@ -4,24 +4,23 @@ Full analysis pipeline with RAG, LLM, and health scoring.
 Week 3: Added Supabase integration for persistence
 """
 
-import asyncio
 import logging
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+import uuid
+from typing import Dict, Any, Optional
+from fastapi import APIRouter, HTTPException
 
 from api.routes.upload import contract_store
-from pipeline.rag_engine import retrieve_benchmarks
-from pipeline.llm_analyser import analyse_clause
-from pipeline.scorer import calculate_health_score
+from core.status import CONTRACT_STATUS_COMPLETE, CONTRACT_STATUS_FAILED, CONTRACT_STATUS_QUEUED
 from db.queries import (
-    update_contract_status,
-    update_contract_type_metadata,
-    update_contract_results,
-    save_clause_analyses_batch,
+    create_analysis_job,
+    get_active_analysis_job,
     get_contract_with_clauses,
     get_contract,
+    update_contract_progress,
 )
 from db.supabase_client import is_supabase_configured
+from services.analysis_pipeline import detect_contract_type, resolve_contract_type
+from services.job_queue import create_local_job, enqueue_contract_analysis, get_local_active_job
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,291 +30,96 @@ router = APIRouter()
 # In-memory store for analysis results (fallback when Supabase is not configured)
 analysis_results: Dict[str, Any] = {}
 
-SUPPORTED_CONTRACT_TYPES = {"nda", "employment", "vendor", "other"}
-DETECTION_CONFIDENCE_THRESHOLD = 0.55
-
-
-def _extract_clause_text(clause: Any) -> str:
-    if isinstance(clause, dict):
-        return str(clause.get("text", "") or clause.get("original_text", "") or clause.get("content", ""))
-    return str(clause)
-
-
-def _normalize_contract_type(contract_type: Optional[str]) -> str:
-    normalized = (contract_type or "other").lower().strip()
-    return normalized if normalized in SUPPORTED_CONTRACT_TYPES else "other"
-
-
-def detect_contract_type(clauses: List[Any]) -> Dict[str, Any]:
-    """
-    Detect contract type based on clause content.
-    
-    Args:
-        clauses: List of clause texts
-    
-    Returns:
-        Dict with detected_contract_type, contract_type_confidence, and scores
-    """
-    combined_text = " ".join(_extract_clause_text(clause) for clause in clauses).lower()
-    
-    # Scoring based on keyword presence
-    scores = {
-        "nda": 0,
-        "employment": 0,
-        "vendor": 0,
-    }
-    
-    # NDA keywords
-    nda_keywords = [
-        "confidential", "non-disclosure", "disclosing party", "receiving party",
-        "trade secret", "proprietary information"
-    ]
-    for kw in nda_keywords:
-        scores["nda"] += combined_text.count(kw)
-    
-    # Employment keywords
-    employment_keywords = [
-        "employment", "employee", "employer", "salary", "at-will",
-        "termination", "severance", "benefits", "non-compete", "non-solicit"
-    ]
-    for kw in employment_keywords:
-        scores["employment"] += combined_text.count(kw)
-    
-    # Vendor keywords
-    vendor_keywords = [
-        "vendor", "payment", "invoice", "liability", "indemnification",
-        "warranty", "deliverables", "services", "customer"
-    ]
-    for kw in vendor_keywords:
-        scores["vendor"] += combined_text.count(kw)
-    
-    # Get highest score
-    max_score = max(scores.values())
-    if max_score == 0:
-        return {
-            "detected_contract_type": "other",
-            "contract_type_confidence": 0.0,
-            "scores": scores,
-        }
-    
-    detected_type = max(scores, key=scores.get)
-    total_score = sum(scores.values())
-    confidence = round(max_score / total_score, 4) if total_score else 0.0
+def _progress_response(contract_id: str, record: Dict[str, Any], job: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    status = record.get("status", "unknown")
     return {
-        "detected_contract_type": detected_type,
-        "contract_type_confidence": confidence,
-        "scores": scores,
-    }
-
-
-def resolve_contract_type(selected_contract_type: Optional[str], detection: Dict[str, Any]) -> Dict[str, Any]:
-    selected = _normalize_contract_type(selected_contract_type)
-    detected = _normalize_contract_type(detection.get("detected_contract_type"))
-    confidence = float(detection.get("contract_type_confidence") or 0.0)
-
-    if detected != "other" and confidence >= DETECTION_CONFIDENCE_THRESHOLD:
-        effective = detected
-    elif selected != "other":
-        effective = selected
-    else:
-        effective = detected
-
-    conflict = (
-        selected != "other"
-        and detected != "other"
-        and selected != detected
-        and confidence > 0
-    )
-
-    return {
-        "selected_contract_type": selected,
-        "detected_contract_type": detected,
-        "contract_type_confidence": confidence,
-        "contract_type": effective,
-        "contract_type_conflict": conflict,
-    }
-
-
-async def process_contract_analysis(contract_id: str, clauses: List[Any], contract_type_metadata: Dict[str, Any]):
-    """
-    Background task to analyze all clauses and calculate health score.
-    Saves results to Supabase if configured.
-    
-    Args:
-        contract_id: The contract ID
-        clauses: List of clause texts
-        contract_type_metadata: Selected, detected, and effective contract type data
-    """
-    contract_type = contract_type_metadata["contract_type"]
-    logger.info(f"Starting analysis for contract {contract_id} ({len(clauses)} clauses)")
-
-    # Update status to processing in database
-    await update_contract_status(contract_id, "processing")
-
-    analyzed_clauses = []
-
-    # DEBUG: Log first clause to inspect its structure
-    if clauses:
-        logger.info(f"First clause object: {clauses[0]}")
-
-    for idx, clause in enumerate(clauses):
-        logger.info(f"Analyzing clause {idx + 1}/{len(clauses)}")
-
-        try:
-            clause_text = _extract_clause_text(clause)
-            logger.info(f"clause keys: {list(clause.keys()) if isinstance(clause, dict) else f'type={type(clause).__name__}'}")
-            logger.info(f"clause_text preview: {clause_text[:100]}")
-
-            # Step 1: Retrieve similar benchmarks from RAG
-            benchmarks = retrieve_benchmarks(clause_text, k=3, contract_type=contract_type)
-            logger.debug(f"Retrieved {len(benchmarks)} benchmarks for clause {idx}")
-
-            # Step 2: Analyze clause with LLM
-            result = await analyse_clause(
-                clause_text=clause_text,
-                benchmarks=benchmarks,
-                contract_type=contract_type,
-            )
-
-            # Step 3: Build clause result
-            clause_result = {
-                "id": f"{contract_id}_clause_{idx}",
-                "clause_index": idx,
-                "clause_title": result.get("clause_title", f"Clause {idx + 1}"),
-                "original_text": clause_text,
-                "risk_level": result.get("risk_level", "unknown"),
-                "risk_score": result.get("risk_score"),
-                "risk_reason": result.get("risk_reason", ""),
-                "plain_english": result.get("plain_english", ""),
-                "key_concerns": result.get("key_concerns", []),
-                "suggested_fix": result.get("suggested_fix", ""),
-                "analysis_status": result.get("analysis_status", "success"),
-                "retry_count": result.get("retry_count", 0),
-                "error_message": result.get("error_message"),
-                "provider_used": result.get("provider_used", "unknown"),
-                "retrieved_benchmarks": benchmarks,
-            }
-
-            analyzed_clauses.append(clause_result)
-
-        except Exception as e:
-            import traceback
-            logger.error(f"FULL TRACEBACK: {traceback.format_exc()}")
-            analyzed_clauses.append({
-                "id": f"{contract_id}_clause_{idx}",
-                "clause_index": idx,
-                "clause_title": f"Clause {idx + 1}",
-                "original_text": _extract_clause_text(clause),
-                "risk_level": "unknown",
-                "risk_score": None,
-                "risk_reason": f"Analysis failed: {str(e)}",
-                "plain_english": "This clause could not be analyzed.",
-                "key_concerns": ["Analysis error occurred"],
-                "suggested_fix": "Please retry the analysis.",
-                "analysis_status": "failed",
-                "retry_count": 0,
-                "error_message": str(e),
-                "provider_used": "error",
-                "retrieved_benchmarks": [],
-            })
-
-        await asyncio.sleep(1)
-    
-    # Step 4: Calculate health score
-    health = calculate_health_score(analyzed_clauses)
-    
-    # Step 5: Save clause analyses to Supabase (batch insert)
-    db_saved = await save_clause_analyses_batch(contract_id, analyzed_clauses)
-    if db_saved:
-        logger.info(f"Saved {len(analyzed_clauses)} clause analyses to Supabase")
-    else:
-        logger.warning("Failed to save clause analyses to Supabase (may not be configured)")
-    
-    # Step 6: Update contract with results
-    db_updated = await update_contract_results(
-        contract_id=contract_id,
-        health_data=health,
-        risk_counts=health.get("risk_counts", {"high": 0, "medium": 0, "low": 0}),
-        total_clauses=len(analyzed_clauses)
-    )
-    if db_updated:
-        logger.info(f"Updated contract {contract_id} results in Supabase")
-    else:
-        logger.warning("Failed to update contract results in Supabase (may not be configured)")
-    
-    # Step 7: Store results in memory (for fallback and caching)
-    analysis_results[contract_id] = {
         "contract_id": contract_id,
-        "status": "complete",
-        "clauses": analyzed_clauses,
-        "health": health,
-        **contract_type_metadata,
+        "job_id": job.get("id") if job else None,
+        "task_id": job.get("celery_task_id") if job else None,
+        "status": status,
+        "progress_percent": record.get("progress_percent", 100 if status == CONTRACT_STATUS_COMPLETE else 0),
+        "status_message": record.get("status_message") or record.get("message") or status,
+        "current_stage": job.get("current_stage") if job else status,
+        "has_results": status == CONTRACT_STATUS_COMPLETE,
+        "error_message": record.get("error_message") or record.get("error"),
+        "total_clauses": record.get("total_clauses") or len(record.get("clauses") or []),
     }
-    
-    # Update contract store status
-    if contract_id in contract_store:
-        contract_store[contract_id]["status"] = "complete"
-        contract_store[contract_id].update(contract_type_metadata)
-    
-    logger.info(f"Analysis complete for contract {contract_id}. Health score: {health['score']}")
 
 
 @router.post("/analyse/{contract_id}")
-async def start_analysis(contract_id: str, background_tasks: BackgroundTasks):
+async def start_analysis(contract_id: str):
     """
     Start analysis for a contract.
     Returns immediately, analysis runs in background.
     """
-    if contract_id not in contract_store:
+    record = None
+    if is_supabase_configured():
+        record = await get_contract(contract_id)
+    if not record:
+        record = contract_store.get(contract_id)
+    if not record:
         raise HTTPException(status_code=404, detail="Contract not found")
-    
-    record = contract_store[contract_id]
-    
-    if record["status"] == "failed":
+
+    if record.get("status") == CONTRACT_STATUS_FAILED:
         raise HTTPException(status_code=400, detail=f"Upload failed: {record.get('error')}")
-    
-    if not record["clauses"]:
-        raise HTTPException(status_code=400, detail="No clauses found in contract")
-    
-    # Check if already analyzed
-    if contract_id in analysis_results:
+
+    if record.get("status") == CONTRACT_STATUS_COMPLETE:
         return {
             "contract_id": contract_id,
-            "status": "already_analyzed",
+            "status": CONTRACT_STATUS_COMPLETE,
+            "has_results": True,
             "message": "Contract has already been analyzed",
         }
-    
-    # Mark as processing
-    contract_store[contract_id]["status"] = "processing"
-    
-    # Detect contract type without overwriting the user's selected type.
-    selected_contract_type = record.get("selected_contract_type") or record.get("contract_type")
-    detection = detect_contract_type(record["clauses"])
-    contract_type_metadata = resolve_contract_type(selected_contract_type, detection)
-    contract_store[contract_id].update(contract_type_metadata)
-    await update_contract_type_metadata(contract_id, contract_type_metadata)
-    logger.info(
-        "Contract type selected=%s detected=%s confidence=%s effective=%s",
-        contract_type_metadata["selected_contract_type"],
-        contract_type_metadata["detected_contract_type"],
-        contract_type_metadata["contract_type_confidence"],
-        contract_type_metadata["contract_type"],
+
+    active_job = await get_active_analysis_job(contract_id)
+    if not active_job:
+        active_job = get_local_active_job(contract_id)
+    if active_job:
+        return {
+            "contract_id": contract_id,
+            "job_id": active_job.get("id"),
+            "task_id": active_job.get("celery_task_id"),
+            "status": record.get("status", CONTRACT_STATUS_QUEUED),
+            "message": "Analysis is already queued or running",
+        }
+
+    task_id = str(uuid.uuid4())
+    job = await create_analysis_job(contract_id, task_id)
+    if not job:
+        job = create_local_job(contract_id, task_id)
+
+    await update_contract_progress(
+        contract_id,
+        CONTRACT_STATUS_QUEUED,
+        0,
+        "Analysis queued",
     )
-    
-    # Start background analysis
-    background_tasks.add_task(
-        process_contract_analysis,
-        contract_id=contract_id,
-        clauses=record["clauses"],
-        contract_type_metadata=contract_type_metadata,
-    )
+    if contract_id in contract_store:
+        contract_store[contract_id].update({
+            "status": CONTRACT_STATUS_QUEUED,
+            "progress_percent": 0,
+            "status_message": "Analysis queued",
+        })
+
+    try:
+        task_id = enqueue_contract_analysis(contract_id, task_id)
+    except Exception as exc:
+        await update_contract_progress(contract_id, CONTRACT_STATUS_FAILED, 100, "Failed to enqueue analysis", str(exc))
+        if contract_id in contract_store:
+            contract_store[contract_id].update({
+                "status": CONTRACT_STATUS_FAILED,
+                "progress_percent": 100,
+                "status_message": "Failed to enqueue analysis",
+                "error_message": str(exc),
+            })
+        raise HTTPException(status_code=503, detail=f"Failed to enqueue analysis: {str(exc)}")
     
     return {
         "contract_id": contract_id,
-        "status": "analysis_started",
-        "message": f"Analyzing {len(record['clauses'])} clauses in background",
-        "total_clauses": len(record["clauses"]),
-        **contract_type_metadata,
+        "job_id": job.get("id") if job else None,
+        "task_id": task_id,
+        "status": CONTRACT_STATUS_QUEUED,
+        "message": "Analysis queued",
     }
 
 
@@ -331,7 +135,7 @@ async def get_analysis(contract_id: str):
     if is_supabase_configured():
         try:
             db_contract = await get_contract_with_clauses(contract_id)
-            if db_contract and db_contract.get("status") == "complete":
+            if db_contract and db_contract.get("status") == CONTRACT_STATUS_COMPLETE:
                 logger.info(f"Returning results from Supabase for contract {contract_id}")
                 
                 # Build health data from DB record
@@ -369,12 +173,16 @@ async def get_analysis(contract_id: str):
                         "error_message": clause.get("error_message"),
                         "provider_used": clause.get("provider_used"),
                         "retrieved_benchmarks": clause.get("retrieved_benchmarks", []),
+                        "cited_benchmark_ids": clause.get("cited_benchmark_ids", []),
+                        "risk_rule_applied": clause.get("risk_rule_applied", ""),
+                        "evidence_summary": clause.get("evidence_summary", ""),
+                        "benchmark_alignment": clause.get("benchmark_alignment", "none"),
                     })
                 
                 return {
                     "contract_id": contract_id,
                     "filename": db_contract.get("filename", ""),
-                    "status": "complete",
+                    "status": CONTRACT_STATUS_COMPLETE,
                     "contract_type": db_contract.get("contract_type", "unknown"),
                     "selected_contract_type": db_contract.get("selected_contract_type") or db_contract.get("contract_type", "unknown"),
                     "detected_contract_type": db_contract.get("detected_contract_type") or db_contract.get("contract_type", "unknown"),
@@ -387,6 +195,9 @@ async def get_analysis(contract_id: str):
                     "clauses": clauses,
                     "total_clauses": len(clauses),
                 }
+            if db_contract:
+                active_job = await get_active_analysis_job(contract_id)
+                return _progress_response(contract_id, db_contract, active_job)
         except Exception as e:
             logger.warning(f"Failed to get results from Supabase: {e}")
     
@@ -397,12 +208,15 @@ async def get_analysis(contract_id: str):
     record = contract_store[contract_id]
     
     # Check if analysis is complete
-    if contract_id in analysis_results:
-        result = analysis_results[contract_id]
+    if contract_id in analysis_results or record.get("status") == CONTRACT_STATUS_COMPLETE:
+        result = analysis_results.get(contract_id) or {
+            "health": record.get("health"),
+            "clauses": record.get("analysis", []),
+        }
         return {
             "contract_id": contract_id,
             "filename": record["filename"],
-            "status": "complete",
+            "status": CONTRACT_STATUS_COMPLETE,
             "contract_type": record.get("contract_type", "unknown"),
             "selected_contract_type": record.get("selected_contract_type", record.get("contract_type", "unknown")),
             "detected_contract_type": record.get("detected_contract_type", record.get("contract_type", "unknown")),
@@ -414,18 +228,14 @@ async def get_analysis(contract_id: str):
         }
     
     # Analysis still in progress or not started
-    return {
-        "contract_id": contract_id,
-        "filename": record["filename"],
-        "status": record["status"],
-        "message": "Analysis in progress. Check back shortly.",
-        "total_clauses": len(record.get("clauses", [])),
-        "contract_type": record.get("contract_type", "unknown"),
-        "selected_contract_type": record.get("selected_contract_type", record.get("contract_type", "unknown")),
-        "detected_contract_type": record.get("detected_contract_type", "unknown"),
-        "contract_type_confidence": record.get("contract_type_confidence", 0),
-        "contract_type_conflict": record.get("contract_type_conflict", False),
-    }
+    response = _progress_response(contract_id, record, get_local_active_job(contract_id))
+    response["filename"] = record["filename"]
+    response["contract_type"] = record.get("contract_type", "unknown")
+    response["selected_contract_type"] = record.get("selected_contract_type", record.get("contract_type", "unknown"))
+    response["detected_contract_type"] = record.get("detected_contract_type", "unknown")
+    response["contract_type_confidence"] = record.get("contract_type_confidence", 0)
+    response["contract_type_conflict"] = record.get("contract_type_conflict", False)
+    return response
 
 
 @router.get("/analyse/{contract_id}/status")
@@ -438,12 +248,8 @@ async def get_analysis_status(contract_id: str):
         try:
             db_contract = await get_contract(contract_id)
             if db_contract:
-                is_complete = db_contract.get("status") == "complete"
-                return {
-                    "contract_id": contract_id,
-                    "status": db_contract.get("status", "unknown"),
-                    "has_results": is_complete,
-                }
+                active_job = await get_active_analysis_job(contract_id)
+                return _progress_response(contract_id, db_contract, active_job)
         except Exception as e:
             logger.debug(f"Failed to get status from Supabase: {e}")
     
@@ -451,13 +257,10 @@ async def get_analysis_status(contract_id: str):
     if contract_id not in contract_store:
         raise HTTPException(status_code=404, detail="Contract not found")
     
-    is_complete = contract_id in analysis_results
-    
-    return {
-        "contract_id": contract_id,
-        "status": "complete" if is_complete else contract_store[contract_id].get("status", "unknown"),
-        "has_results": is_complete,
-    }
+    record = contract_store[contract_id]
+    if contract_id in analysis_results:
+        record = {**record, "status": CONTRACT_STATUS_COMPLETE, "progress_percent": 100}
+    return _progress_response(contract_id, record, get_local_active_job(contract_id))
 
 
 @router.get("/analyse/{contract_id}/clauses/{clause_index}")
@@ -498,6 +301,10 @@ async def get_clause_detail(contract_id: str, clause_index: int):
                     "error_message": clause.get("error_message"),
                     "provider_used": clause.get("provider_used"),
                     "retrieved_benchmarks": clause.get("retrieved_benchmarks", []),
+                    "cited_benchmark_ids": clause.get("cited_benchmark_ids", []),
+                    "risk_rule_applied": clause.get("risk_rule_applied", ""),
+                    "evidence_summary": clause.get("evidence_summary", ""),
+                    "benchmark_alignment": clause.get("benchmark_alignment", "none"),
                 }
         except Exception as e:
             logger.error(f"Failed to get clause from Supabase: {e}")

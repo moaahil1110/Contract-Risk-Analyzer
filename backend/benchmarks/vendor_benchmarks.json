@@ -1,68 +1,602 @@
 [
   {
-    "type": "payment_terms",
-    "text": "Payment shall be due within thirty (30) days of the invoice date. Overdue amounts shall accrue interest at a rate of 1.5% per month or the maximum rate permitted by law, whichever is less.",
-    "risk_notes": "Standard payment terms. 30 days is industry standard. 1.5% monthly interest (18% annual) is reasonable for late payments.",
-    "standard_version": "Standard Vendor"
+    "benchmark_id": "vendor_001",
+    "contract_type": "vendor",
+    "clause_type": "scope_of_services",
+    "risk_level": "low",
+    "clause_text": "Vendor will provide the services and deliverables described in the statement of work, and changes require written approval by both parties.",
+    "risk_rule": "Scope should identify deliverables and require written change control.",
+    "why_risky": "The clause is specific and limits informal scope expansion.",
+    "safe_version": "Attach a statement of work and require written change orders for material changes.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "scope",
+      "deliverables",
+      "change-control"
+    ]
   },
   {
-    "type": "payment_terms",
-    "text": "Payment terms are Net 90 from date of invoice. Late payments subject to interest at 5% per month.",
-    "risk_notes": "HIGH RISK for vendor - 90 days is very slow payment, 5% monthly (60% annual) interest is excessive. Negotiate shorter terms.",
-    "standard_version": "Unfavorable to Vendor"
+    "benchmark_id": "vendor_002",
+    "contract_type": "vendor",
+    "clause_type": "scope_of_services",
+    "risk_level": "medium",
+    "clause_text": "Vendor will provide services as reasonably requested by customer from time to time.",
+    "risk_rule": "Open-ended service obligations create scope uncertainty.",
+    "why_risky": "The vendor may be asked to perform work beyond priced deliverables.",
+    "safe_version": "Define deliverables, assumptions, exclusions, and change-order mechanics.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "scope",
+      "open-ended",
+      "services"
+    ]
   },
   {
-    "type": "liability_cap",
-    "text": "Each party's total aggregate liability shall not exceed the total amount paid or payable under this Agreement in the twelve (12) months preceding the claim.",
-    "risk_notes": "Standard mutual liability cap. Reasonable limitation for both sides. Low risk.",
-    "standard_version": "Standard Vendor"
+    "benchmark_id": "vendor_003",
+    "contract_type": "vendor",
+    "clause_type": "scope_of_services",
+    "risk_level": "high",
+    "clause_text": "Vendor must perform all services requested by customer without additional fees or schedule changes.",
+    "risk_rule": "Unlimited scope obligations are commercially severe.",
+    "why_risky": "The vendor bears unbounded workload and cost risk.",
+    "safe_version": "Limit services to agreed statements of work and price additional requests through change orders.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "scope",
+      "unlimited",
+      "fees"
+    ]
   },
   {
-    "type": "liability_cap",
-    "text": "Vendor's total liability shall not exceed $10,000 regardless of the contract value or damages incurred.",
-    "risk_notes": "HIGH RISK for vendor - low cap that doesn't scale with contract value or risk. Insufficient for high-value projects.",
-    "standard_version": "Unfavorable to Vendor"
+    "benchmark_id": "vendor_004",
+    "contract_type": "vendor",
+    "clause_type": "payment_terms",
+    "risk_level": "low",
+    "clause_text": "Customer will pay undisputed invoices within thirty days of receipt, and disputed amounts must be identified in good faith before the due date.",
+    "risk_rule": "Payment terms should set due dates and handle good-faith disputes.",
+    "why_risky": "The clause gives predictable cash flow while preserving dispute rights.",
+    "safe_version": "Keep payment timing, dispute notice, and undisputed-payment obligations clear.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "payment",
+      "invoice",
+      "disputes"
+    ]
   },
   {
-    "type": "indemnification",
-    "text": "Vendor shall indemnify and hold harmless Customer against any third-party claims arising from Vendor's breach of this Agreement or Vendor's negligence or willful misconduct.",
-    "risk_notes": "Standard indemnification for vendor's own actions. Fair and reasonable. Ensure insurance coverage exists.",
-    "standard_version": "Standard Vendor"
+    "benchmark_id": "vendor_005",
+    "contract_type": "vendor",
+    "clause_type": "payment_terms",
+    "risk_level": "medium",
+    "clause_text": "Customer will pay invoices within ninety days after receipt, subject to customer approval.",
+    "risk_rule": "Long or approval-based payment terms increase collection risk.",
+    "why_risky": "Vendor may wait too long for cash and approval standards are unclear.",
+    "safe_version": "Use a shorter fixed payment period and objective acceptance or dispute procedures.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "payment",
+      "net-90",
+      "approval"
+    ]
   },
   {
-    "type": "indemnification",
-    "text": "Vendor shall indemnify Customer against all claims, damages, liabilities, and expenses of any kind arising out of or relating to this Agreement, regardless of cause or fault.",
-    "risk_notes": "HIGH RISK - 'regardless of cause or fault' makes vendor liable even for customer-caused issues. Unfair and overly broad.",
-    "standard_version": "Unfavorable to Vendor"
+    "benchmark_id": "vendor_006",
+    "contract_type": "vendor",
+    "clause_type": "payment_terms",
+    "risk_level": "high",
+    "clause_text": "Customer may withhold payment for any reason and vendor must continue services during any payment dispute.",
+    "risk_rule": "Unrestricted withholding creates major cash-flow and leverage risk.",
+    "why_risky": "Vendor could be forced to work without payment even for unrelated disputes.",
+    "safe_version": "Limit withholding to disputed amounts and allow suspension for undisputed overdue invoices after notice.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "payment",
+      "withholding",
+      "suspension"
+    ]
   },
   {
-    "type": "ip_ownership",
-    "text": "All work product and deliverables created by Vendor specifically for Customer under this Agreement shall be owned by Customer upon full payment.",
-    "risk_notes": "Standard work-for-hire/custom deliverables clause. Reasonable if deliverables are clearly defined and payment is received.",
-    "standard_version": "Standard Vendor"
+    "benchmark_id": "vendor_007",
+    "contract_type": "vendor",
+    "clause_type": "acceptance",
+    "risk_level": "low",
+    "clause_text": "Deliverables are accepted when they meet the objective acceptance criteria in the statement of work or if customer does not reject them with specific reasons within ten business days.",
+    "risk_rule": "Acceptance should use objective criteria and deemed acceptance.",
+    "why_risky": "The clause prevents indefinite review periods.",
+    "safe_version": "Define acceptance tests, rejection detail, cure rights, and deemed acceptance.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "acceptance",
+      "criteria",
+      "deemed-acceptance"
+    ]
   },
   {
-    "type": "ip_ownership",
-    "text": "All intellectual property rights in any materials, methods, or processes used by Vendor, including pre-existing tools and methodologies, shall become the exclusive property of Customer.",
-    "risk_notes": "HIGH RISK - vendor's pre-existing IP and tools should not transfer. Limits vendor's ability to work with other clients.",
-    "standard_version": "Unfavorable to Vendor"
+    "benchmark_id": "vendor_008",
+    "contract_type": "vendor",
+    "clause_type": "acceptance",
+    "risk_level": "medium",
+    "clause_text": "Customer may reject deliverables that do not meet customer expectations.",
+    "risk_rule": "Subjective acceptance standards create uncertainty.",
+    "why_risky": "Vendor may not know what standard must be met for payment.",
+    "safe_version": "Use objective specifications and require detailed rejection notices.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "acceptance",
+      "subjective",
+      "deliverables"
+    ]
   },
   {
-    "type": "termination",
-    "text": "Either party may terminate this Agreement for convenience upon ninety (90) days written notice. Either party may terminate for material breach upon thirty (30) days written notice if uncured.",
-    "risk_notes": "Standard termination clause. 90-day convenience notice protects both sides. Breach termination with cure period is reasonable.",
-    "standard_version": "Standard Vendor"
+    "benchmark_id": "vendor_009",
+    "contract_type": "vendor",
+    "clause_type": "acceptance",
+    "risk_level": "high",
+    "clause_text": "Customer has sole discretion to accept or reject any deliverable at any time, including after production use.",
+    "risk_rule": "Sole-discretion and post-use rejection are high risk.",
+    "why_risky": "Vendor can lose payment even after customer benefits from the deliverable.",
+    "safe_version": "Tie rejection to objective nonconformity and limit review periods.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "acceptance",
+      "sole-discretion",
+      "post-use"
+    ]
   },
   {
-    "type": "warranty",
-    "text": "Vendor warrants that the services shall be performed in a professional and workmanlike manner in accordance with industry standards.",
-    "risk_notes": "Standard performance warranty. Limited to quality standards. Reasonable.",
-    "standard_version": "Standard Vendor"
+    "benchmark_id": "vendor_010",
+    "contract_type": "vendor",
+    "clause_type": "service_levels",
+    "risk_level": "low",
+    "clause_text": "Vendor will use commercially reasonable efforts to meet the service levels in the statement of work, with service credits as the exclusive remedy for missed uptime targets.",
+    "risk_rule": "SLA remedies should be defined and proportionate.",
+    "why_risky": "The clause sets expectations and limits remedy stacking.",
+    "safe_version": "State service levels, measurement windows, exclusions, credits, and exclusive remedies.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "sla",
+      "service-credits",
+      "uptime"
+    ]
   },
   {
-    "type": "warranty",
-    "text": "Vendor warrants that the deliverables will meet all of Customer's requirements, be error-free, and suitable for any purpose Customer intends, whether stated or unstated.",
-    "risk_notes": "HIGH RISK - unlimited warranty covering unstated requirements and any purpose. Impossible to meet, creates unlimited liability.",
-    "standard_version": "Unfavorable to Vendor"
+    "benchmark_id": "vendor_011",
+    "contract_type": "vendor",
+    "clause_type": "service_levels",
+    "risk_level": "medium",
+    "clause_text": "Vendor will maintain continuous availability except during maintenance or events outside its control.",
+    "risk_rule": "Continuous availability promises may be unrealistic without metrics.",
+    "why_risky": "The clause lacks uptime percentage, exclusions, and remedies.",
+    "safe_version": "Use measured uptime targets with defined exclusions and credits.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "sla",
+      "availability",
+      "metrics"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_012",
+    "contract_type": "vendor",
+    "clause_type": "service_levels",
+    "risk_level": "high",
+    "clause_text": "Vendor guarantees uninterrupted and error-free service and is liable for all losses caused by downtime.",
+    "risk_rule": "Absolute service guarantees create uncapped operational exposure.",
+    "why_risky": "No service can realistically guarantee zero downtime or error-free operation.",
+    "safe_version": "Replace absolute guarantees with measurable SLAs and capped remedies.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "sla",
+      "guarantee",
+      "uncapped-losses"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_013",
+    "contract_type": "vendor",
+    "clause_type": "limitation_of_liability",
+    "risk_level": "low",
+    "clause_text": "Except for confidentiality, indemnity, payment, and willful misconduct, each party's aggregate liability is capped at fees paid in the twelve months before the claim.",
+    "risk_rule": "Liability caps should be mutual and include negotiated carveouts.",
+    "why_risky": "The cap is tied to commercial value while preserving serious exceptions.",
+    "safe_version": "Use a mutual cap with clear carveouts for higher-risk obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "liability-cap",
+      "mutual",
+      "carveouts"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_014",
+    "contract_type": "vendor",
+    "clause_type": "limitation_of_liability",
+    "risk_level": "medium",
+    "clause_text": "Vendor's liability is capped at fees paid, but customer has no liability cap.",
+    "risk_rule": "One-sided liability caps create imbalance.",
+    "why_risky": "Vendor receives protection while customer exposure remains open-ended.",
+    "safe_version": "Make the cap mutual or explain specific uncapped customer obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "liability-cap",
+      "one-sided",
+      "fees"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_015",
+    "contract_type": "vendor",
+    "clause_type": "limitation_of_liability",
+    "risk_level": "high",
+    "clause_text": "Vendor is liable for all direct, indirect, consequential, special, and punitive damages without limitation.",
+    "risk_rule": "Uncapped consequential damages are commercially severe.",
+    "why_risky": "Vendor could face exposure far beyond contract value.",
+    "safe_version": "Exclude consequential damages and cap aggregate liability with limited negotiated exceptions.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "liability-cap",
+      "uncapped",
+      "consequential-damages"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_016",
+    "contract_type": "vendor",
+    "clause_type": "indemnification",
+    "risk_level": "low",
+    "clause_text": "Vendor will indemnify customer against third-party claims alleging that the deliverables infringe intellectual property rights, subject to customer prompt notice and cooperation.",
+    "risk_rule": "Indemnity should be limited to third-party claims and include procedure.",
+    "why_risky": "The clause targets a common vendor risk with fair process protections.",
+    "safe_version": "Limit indemnity to defined third-party claims and include notice, control, and cooperation duties.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "indemnity",
+      "third-party",
+      "ip"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_017",
+    "contract_type": "vendor",
+    "clause_type": "indemnification",
+    "risk_level": "medium",
+    "clause_text": "Vendor will indemnify customer against claims arising from vendor's breach of this agreement.",
+    "risk_rule": "Broad breach indemnity can convert ordinary contract claims into indemnity claims.",
+    "why_risky": "It may bypass negotiated limits or procedural safeguards.",
+    "safe_version": "Limit indemnity to third-party claims, IP infringement, bodily injury, data breach, or gross misconduct as appropriate.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "indemnity",
+      "breach",
+      "broad"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_018",
+    "contract_type": "vendor",
+    "clause_type": "indemnification",
+    "risk_level": "high",
+    "clause_text": "Vendor will indemnify customer for all losses, claims, damages, and expenses arising in any way from the services, regardless of customer fault.",
+    "risk_rule": "All-loss indemnity regardless of fault is overbroad.",
+    "why_risky": "Vendor may pay for customer-caused or unrelated losses.",
+    "safe_version": "Tie indemnity to vendor fault, breach, or specified third-party claims and preserve comparative fault.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "indemnity",
+      "all-losses",
+      "fault"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_019",
+    "contract_type": "vendor",
+    "clause_type": "warranty",
+    "risk_level": "low",
+    "clause_text": "Vendor warrants that services will be performed in a professional and workmanlike manner and deliverables will materially conform to the statement of work for thirty days after acceptance.",
+    "risk_rule": "Warranties should be concrete, time-limited, and tied to specifications.",
+    "why_risky": "The clause gives customer protection without open-ended guarantees.",
+    "safe_version": "Use material conformity and professional-services warranties with a cure remedy.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "warranty",
+      "conformity",
+      "cure"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_020",
+    "contract_type": "vendor",
+    "clause_type": "warranty",
+    "risk_level": "medium",
+    "clause_text": "Vendor warrants that the services will meet industry standards.",
+    "risk_rule": "Industry-standard warranties can be vague without remedy or duration.",
+    "why_risky": "The parties may dispute what standard applies.",
+    "safe_version": "Define the standard, warranty period, exclusions, and exclusive remedy.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "warranty",
+      "industry-standard",
+      "duration"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_021",
+    "contract_type": "vendor",
+    "clause_type": "warranty",
+    "risk_level": "high",
+    "clause_text": "Vendor warrants that all deliverables will be error-free, uninterrupted, and fit for every customer purpose.",
+    "risk_rule": "Absolute and broad fitness warranties create high risk.",
+    "why_risky": "The vendor may be responsible for unrealistic expectations and customer-specific uses.",
+    "safe_version": "Limit warranties to material conformity with agreed specifications and disclaim implied warranties where appropriate.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "warranty",
+      "error-free",
+      "fitness"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_022",
+    "contract_type": "vendor",
+    "clause_type": "data_security",
+    "risk_level": "low",
+    "clause_text": "Vendor will maintain reasonable administrative, technical, and physical safeguards for customer data and notify customer without undue delay after confirming a security incident.",
+    "risk_rule": "Data security clauses should define safeguards and incident notice.",
+    "why_risky": "The clause creates practical protection without impossible guarantees.",
+    "safe_version": "State security standards, breach notice timing, cooperation, and data handling duties.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "data-security",
+      "safeguards",
+      "incident-notice"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_023",
+    "contract_type": "vendor",
+    "clause_type": "data_security",
+    "risk_level": "medium",
+    "clause_text": "Vendor will use reasonable efforts to keep customer data secure.",
+    "risk_rule": "Reasonable-efforts security language is thin for sensitive data.",
+    "why_risky": "It lacks concrete safeguards, incident notice, and compliance obligations.",
+    "safe_version": "Define minimum controls, notification duties, subprocessors, and return/deletion obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "data-security",
+      "reasonable-efforts",
+      "controls"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_024",
+    "contract_type": "vendor",
+    "clause_type": "data_security",
+    "risk_level": "high",
+    "clause_text": "Vendor is fully liable for any data incident, including incidents caused by customer systems or third-party networks.",
+    "risk_rule": "Strict liability for all data incidents is overbroad.",
+    "why_risky": "Vendor may bear losses outside its control.",
+    "safe_version": "Tie liability to vendor-controlled systems, breach of security obligations, or vendor fault.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "data-security",
+      "strict-liability",
+      "breach"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_025",
+    "contract_type": "vendor",
+    "clause_type": "termination",
+    "risk_level": "low",
+    "clause_text": "Either party may terminate for material breach if the breach is not cured within thirty days after written notice, and customer must pay for services performed through termination.",
+    "risk_rule": "Termination should provide notice, cure, and payment for completed work.",
+    "why_risky": "The clause balances exit rights with fair compensation.",
+    "safe_version": "Use cure periods, immediate termination for serious breaches, and payment through effective termination date.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "termination",
+      "cure",
+      "payment"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_026",
+    "contract_type": "vendor",
+    "clause_type": "termination",
+    "risk_level": "medium",
+    "clause_text": "Customer may terminate the statement of work for convenience on thirty days notice.",
+    "risk_rule": "Convenience termination can be acceptable but should address fees and transition.",
+    "why_risky": "Vendor may lose expected revenue without wind-down compensation.",
+    "safe_version": "Add payment for completed work, non-cancelable commitments, and reasonable wind-down costs.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "termination",
+      "convenience",
+      "wind-down"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_027",
+    "contract_type": "vendor",
+    "clause_type": "termination",
+    "risk_level": "high",
+    "clause_text": "Customer may terminate immediately for any reason and receive a refund of all fees previously paid.",
+    "risk_rule": "Immediate termination plus full refund is severe and one-sided.",
+    "why_risky": "Vendor could lose compensation for accepted or already performed services.",
+    "safe_version": "Limit refunds to prepaid unused services or uncured material breach remedies.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "termination",
+      "refund",
+      "one-sided"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_028",
+    "contract_type": "vendor",
+    "clause_type": "intellectual_property",
+    "risk_level": "low",
+    "clause_text": "Customer owns customer materials, vendor owns pre-existing tools, and customer receives a license to use deliverables for its internal business purposes after payment.",
+    "risk_rule": "IP clauses should separate background IP from deliverables and licenses.",
+    "why_risky": "The clause protects both parties' pre-existing assets.",
+    "safe_version": "Define background IP, deliverable ownership, licenses, and payment conditions.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "ip",
+      "background-ip",
+      "license"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_029",
+    "contract_type": "vendor",
+    "clause_type": "intellectual_property",
+    "risk_level": "medium",
+    "clause_text": "All work product belongs to customer upon creation.",
+    "risk_rule": "Broad work-product ownership can capture vendor tools and background IP.",
+    "why_risky": "Vendor may unintentionally transfer reusable methods or pre-existing technology.",
+    "safe_version": "Carve out vendor background IP and grant customer a necessary license.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "ip",
+      "work-product",
+      "background-ip"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_030",
+    "contract_type": "vendor",
+    "clause_type": "intellectual_property",
+    "risk_level": "high",
+    "clause_text": "Customer owns all vendor technology, methods, know-how, and tools used to provide the services.",
+    "risk_rule": "Transfer of all vendor technology is highly overbroad.",
+    "why_risky": "Vendor could lose core assets unrelated to the customer project.",
+    "safe_version": "Limit customer ownership to specifically commissioned deliverables and preserve vendor background IP.",
+    "source_name": "Curated Contract Risk Benchmark Library v1",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v1",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "ip",
+      "vendor-tools",
+      "overbroad"
+    ]
   }
 ]

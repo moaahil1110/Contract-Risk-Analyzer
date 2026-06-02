@@ -17,3 +17,5 @@ def test_llm_total_failure_returns_unknown_failed_clause(monkeypatch):
     assert result["retry_count"] == 4
     assert result["provider_used"] == "fallback"
     assert result["error_message"]
+    assert result["cited_benchmark_ids"] == []
+    assert result["benchmark_alignment"] == "none"

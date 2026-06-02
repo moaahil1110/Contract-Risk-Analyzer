@@ -1,7 +1,7 @@
 """
 RAG Engine Module (Week 2)
 Handles ChromaDB vector store operations and benchmark retrieval.
-Uses local ChromaDB (persisted to ./chroma_db) with sentence-transformers embeddings.
+Uses local ChromaDB persisted under backend/chroma_db by default.
 """
 
 import os
@@ -14,11 +14,19 @@ import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 
+from pipeline.benchmark_schema import (
+    benchmark_dir,
+    format_benchmark_for_embedding,
+    load_benchmarks,
+    validate_benchmarks,
+)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-CHROMA_PERSIST_PATH = os.getenv("CHROMA_PERSIST_PATH", "./chroma_db")
+DEFAULT_CHROMA_PERSIST_PATH = Path(__file__).resolve().parent.parent / "chroma_db"
+CHROMA_PERSIST_PATH = os.getenv("CHROMA_PERSIST_PATH", str(DEFAULT_CHROMA_PERSIST_PATH))
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "contract_benchmarks"
 
@@ -83,7 +91,35 @@ def embed_texts(texts: List[str]) -> List[List[float]]:
     return embeddings.tolist()
 
 
-def build_benchmark_store(benchmark_dir: str = "benchmarks") -> Dict[str, Any]:
+def _metadata_value(value: Any) -> Any:
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return json.dumps(value)
+
+
+def _benchmark_metadata(benchmark: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "benchmark_id": benchmark["benchmark_id"],
+        "contract_type": benchmark["contract_type"],
+        "clause_type": benchmark["clause_type"],
+        "risk_level": benchmark["risk_level"],
+        "clause_text": benchmark["clause_text"],
+        "text": benchmark["clause_text"],
+        "risk_rule": benchmark["risk_rule"],
+        "why_risky": benchmark["why_risky"],
+        "risk_notes": benchmark["why_risky"],
+        "safe_version": benchmark["safe_version"],
+        "source_name": benchmark["source_name"],
+        "source_type": benchmark["source_type"],
+        "source_url": benchmark["source_url"],
+        "source_license_note": benchmark["source_license_note"],
+        "jurisdiction": benchmark["jurisdiction"],
+        "tags": json.dumps(benchmark.get("tags", [])),
+        "standard_version": benchmark["source_name"],
+    }
+
+
+def build_benchmark_store(benchmark_directory: Optional[str] = None) -> Dict[str, Any]:
     """
     Build ChromaDB from all benchmark JSON files.
     
@@ -94,83 +130,63 @@ def build_benchmark_store(benchmark_dir: str = "benchmarks") -> Dict[str, Any]:
     Returns:
         Dict with counts and status
     """
-    benchmark_files = [
-        "nda_benchmarks.json",
-        "employment_benchmarks.json", 
-        "vendor_benchmarks.json"
-    ]
-    
+    directory = Path(benchmark_directory) if benchmark_directory else benchmark_dir()
+    benchmarks = load_benchmarks(directory)
+    validation_errors, validation_summary = validate_benchmarks(benchmarks)
+    if validation_errors:
+        raise ValueError("Benchmark schema validation failed: " + "; ".join(validation_errors[:10]))
+
     collection = get_benchmark_collection()
     model = get_embedding_model()
-    
+
     total_added = 0
     total_skipped = 0
-    
-    for filename in benchmark_files:
-        filepath = Path(benchmark_dir) / filename
-        if not filepath.exists():
-            # Try with full path from project root
-            filepath = Path(__file__).parent.parent / "benchmarks" / filename
-        
-        if not filepath.exists():
-            logger.warning(f"Benchmark file not found: {filepath}")
+
+    ids = []
+    texts = []
+    metadatas = []
+
+    for benchmark in benchmarks:
+        benchmark_id = benchmark["benchmark_id"]
+
+        try:
+            existing = collection.get(ids=[benchmark_id], include=[])
+            if existing and existing["ids"]:
+                total_skipped += 1
+                continue
+        except Exception:
+            pass
+
+        ids.append(benchmark_id)
+        texts.append(format_benchmark_for_embedding(benchmark))
+        metadatas.append({
+            key: _metadata_value(value)
+            for key, value in _benchmark_metadata(benchmark).items()
+        })
+
+    for start in range(0, len(ids), 128):
+        batch_ids = ids[start:start + 128]
+        if not batch_ids:
             continue
-        
-        logger.info(f"Processing {filename}...")
-        
-        with open(filepath, "r") as f:
-            benchmarks = json.load(f)
-        
-        contract_type = filename.replace("_benchmarks.json", "")
-        
-        # Prepare batch data
-        ids = []
-        texts = []
-        metadatas = []
-        
-        for idx, benchmark in enumerate(benchmarks):
-            benchmark_id = f"{contract_type}_{idx}"
-            
-            # Check if already exists
-            try:
-                existing = collection.get(ids=[benchmark_id], include=[])
-                if existing and existing["ids"]:
-                    total_skipped += 1
-                    continue
-            except Exception:
-                pass
-            
-            # Combine text and risk notes for embedding
-            text_to_embed = f"{benchmark.get('type', '')}: {benchmark.get('text', '')}"
-            
-            ids.append(benchmark_id)
-            texts.append(text_to_embed)
-            metadatas.append({
-                "contract_type": contract_type,
-                "clause_type": benchmark.get("type", "unknown"),
-                "text": benchmark.get("text", ""),
-                "risk_notes": benchmark.get("risk_notes", ""),
-                "standard_version": benchmark.get("standard_version", ""),
-            })
-        
-        # Batch add to collection
-        if ids:
-            embeddings = model.encode(texts, convert_to_numpy=True, batch_size=32)
-            collection.add(
-                ids=ids,
-                embeddings=embeddings.tolist(),
-                metadatas=metadatas,
-            )
-            total_added += len(ids)
-            logger.info(f"  Added {len(ids)} benchmarks from {filename}")
-    
+
+        batch_texts = texts[start:start + 128]
+        embeddings = model.encode(batch_texts, convert_to_numpy=True, batch_size=32)
+        collection.add(
+            ids=batch_ids,
+            embeddings=embeddings.tolist(),
+            metadatas=metadatas[start:start + 128],
+        )
+        total_added += len(batch_ids)
+        logger.info("Added %s benchmark entries", len(batch_ids))
+
     # Note: PersistentClient auto-persists, no explicit persist() needed
-    
+
     result = {
         "status": "success",
         "added": total_added,
         "skipped": total_skipped,
         "total_in_db": collection.count(),
+        "schema": validation_summary,
     }
     logger.info(f"Benchmark store built: {result}")
     return result
@@ -183,13 +199,31 @@ def _format_query_results(results: Dict[str, Any]) -> List[Dict[str, Any]]:
         for benchmark_id, metadata, distance in zip(ids, results["metadatas"][0], results["distances"][0]):
             # Convert distance (0-2 for cosine, where 0=identical) to similarity (0-1)
             similarity = 1 - (distance / 2) if distance <= 2 else 0
+            tags = metadata.get("tags", "[]")
+            if isinstance(tags, str):
+                try:
+                    tags = json.loads(tags)
+                except json.JSONDecodeError:
+                    tags = [tags] if tags else []
             benchmarks.append({
                 "id": str(benchmark_id),
+                "benchmark_id": str(metadata.get("benchmark_id") or benchmark_id),
                 "text": str(metadata.get("text", "")),
+                "clause_text": str(metadata.get("clause_text", metadata.get("text", ""))),
+                "risk_level": str(metadata.get("risk_level", "")),
+                "risk_rule": str(metadata.get("risk_rule", "")),
+                "why_risky": str(metadata.get("why_risky", metadata.get("risk_notes", ""))),
                 "risk_notes": str(metadata.get("risk_notes", "")),
+                "safe_version": str(metadata.get("safe_version", "")),
                 "standard_version": str(metadata.get("standard_version", "")),
                 "contract_type": str(metadata.get("contract_type", "")),
                 "clause_type": str(metadata.get("clause_type", "")),
+                "source_name": str(metadata.get("source_name", "")),
+                "source_type": str(metadata.get("source_type", "")),
+                "source_url": str(metadata.get("source_url", "")),
+                "source_license_note": str(metadata.get("source_license_note", "")),
+                "jurisdiction": str(metadata.get("jurisdiction", "")),
+                "tags": tags,
                 "similarity": round(similarity, 4),
             })
     return benchmarks
