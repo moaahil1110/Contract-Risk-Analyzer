@@ -167,7 +167,6 @@ def get_queue_health() -> Dict[str, Any]:
         client.ping()
         return {
             "reachable": True,
-            "broker_url": REDIS_URL,
             "worker_pool": CELERY_WORKER_POOL,
             "worker_concurrency": CELERY_WORKER_CONCURRENCY,
             "task_always_eager": CELERY_TASK_ALWAYS_EAGER,
@@ -175,7 +174,6 @@ def get_queue_health() -> Dict[str, Any]:
     except Exception as exc:
         return {
             "reachable": False,
-            "broker_url": REDIS_URL,
             "worker_pool": CELERY_WORKER_POOL,
             "worker_concurrency": CELERY_WORKER_CONCURRENCY,
             "task_always_eager": CELERY_TASK_ALWAYS_EAGER,

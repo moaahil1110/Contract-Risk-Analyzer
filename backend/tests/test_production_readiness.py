@@ -44,7 +44,6 @@ def test_detailed_health_reports_rag_and_queue(monkeypatch):
     })
     monkeypatch.setattr(main, "get_queue_health", lambda: {
         "reachable": True,
-        "broker_url": "redis://localhost:6379/0",
     })
     monkeypatch.setattr(main, "_check_weasyprint_health", lambda: {"usable": True, "pdf_bytes": 1234})
 
@@ -56,6 +55,7 @@ def test_detailed_health_reports_rag_and_queue(monkeypatch):
     assert body["status"] == "healthy"
     assert body["rag"]["loaded"] is True
     assert body["queue"]["reachable"] is True
+    assert "broker_url" not in body["queue"]
     assert body["weasyprint"]["usable"] is True
     assert "pdf_bytes" in body["weasyprint"]
 
