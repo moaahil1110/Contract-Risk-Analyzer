@@ -43,6 +43,7 @@ RUN mkdir -p /app/chroma_db && chmod +x /app/start_railway.sh
 ENV EMBEDDING_MODEL=all-MiniLM-L6-v2
 ENV EMBEDDING_OFFLINE=false
 ENV RAG_EAGER_INIT=false
+ENV PYTHONUNBUFFERED=1
 
 # Expose port
 EXPOSE 8000
