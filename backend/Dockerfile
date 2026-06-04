@@ -27,9 +27,9 @@ WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-ARG DOWNLOAD_EMBEDDING_MODEL=true
+ARG DOWNLOAD_EMBEDDING_MODEL=false
 ARG EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
-ENV EMBEDDING_MODEL_PATH=/app/models/all-MiniLM-L6-v2
+ARG EMBEDDING_MODEL_PATH=/app/models/all-MiniLM-L6-v2
 RUN if [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
       python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('$EMBEDDING_MODEL_NAME').save('$EMBEDDING_MODEL_PATH')" ; \
     fi
@@ -40,9 +40,9 @@ COPY backend/ .
 # Create directory for ChromaDB persistence
 RUN mkdir -p /app/chroma_db
 
-ENV EMBEDDING_OFFLINE=true
-ENV TRANSFORMERS_OFFLINE=1
-ENV HF_HUB_OFFLINE=1
+ENV EMBEDDING_MODEL=all-MiniLM-L6-v2
+ENV EMBEDDING_OFFLINE=false
+ENV RAG_EAGER_INIT=false
 
 # Expose port
 EXPOSE 8000

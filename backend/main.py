@@ -39,8 +39,10 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting Contract Risk Analyser backend...")
     # Fail closed in production if required security env vars are missing
     validate_security_config_at_startup()
-    # Initialize RAG engine (loads embedding model and ChromaDB)
-    init_engine()
+    # Initialize RAG eagerly by default, but allow deployment images to start
+    # without build-time/bundle-time embedding downloads.
+    if os.getenv("RAG_EAGER_INIT", "true").lower() == "true":
+        init_engine()
     yield
     print("👋 Shutting down...")
 

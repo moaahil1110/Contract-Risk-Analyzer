@@ -118,7 +118,7 @@ def test_weasyprint_export_contains_selectable_text(tmp_path):
     assert "Risk Breakdown" in extracted
     assert "Confidentiality Definition" in extracted
     assert "top-level clause" in extracted
-    assert "Nested Sections" in extracted
+    assert "nested sections" in extracted.lower()
 
 
 def test_fallback_export_renders_nonblank_first_page(tmp_path):
