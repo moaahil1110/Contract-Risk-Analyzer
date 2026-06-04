@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng poppler-utils libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+      - name: Compile backend
+        run: python -m compileall .
+      - name: Run backend tests
+        run: python -m pytest tests
+      - name: Prepare offline embedding model
+        run: python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/tmp/all-MiniLM-L6-v2')"
+      - name: Run RAG eval
+        env:
+          EMBEDDING_OFFLINE: "true"
+          EMBEDDING_MODEL_PATH: /tmp/all-MiniLM-L6-v2
+        run: python scripts/run_rag_eval.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Build frontend
+        run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng poppler-utils libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Prepare offline embedding model
+        working-directory: backend
+        run: python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/tmp/all-MiniLM-L6-v2')"
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.8.0
+        with:
+          redis-version: 7
+      - name: Start services and run E2E
+        env:
+          DEV_MODE: "true"
+          E2E_MOCK_PROVIDER: "true"
+          REDIS_URL: "redis://localhost:6379/0"
+          CELERY_RESULT_BACKEND: "redis://localhost:6379/0"
+          CELERY_TASK_ALWAYS_EAGER: "true"
+          EMBEDDING_OFFLINE: "true"
+          EMBEDDING_MODEL_PATH: /tmp/all-MiniLM-L6-v2
+          VITE_CI_BYPASS_AUTH: "true"
+          VITE_SUPABASE_URL: "http://localhost:54321"
+          VITE_SUPABASE_ANON_KEY: "ci-anon-key"
+          CI: "true"
+        run: |
+          cd backend && uvicorn main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+          cd backend && celery -A worker.celery_app worker --loglevel=INFO &
+          sleep 3
+          cd frontend && npm run dev -- --host &
+          sleep 5
+          cd frontend && npx playwright test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend Docker image
+        run: docker build -t contract-risk-backend ./backend
+      - name: Smoke test backend Docker image
+        run: docker run --rm contract-risk-backend python -c "from pipeline.rag_engine import get_embedding_model; get_embedding_model(); print('embedding-ok')"

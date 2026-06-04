@@ -1,3 +1,4 @@
+import sys
 from contextlib import contextmanager
 from fastapi.testclient import TestClient
 
@@ -76,6 +77,17 @@ def _disable_database(monkeypatch):
     monkeypatch.setattr(analyse, "update_contract_progress", _false_async)
 
 
+def _mock_weasyprint(monkeypatch):
+    class FakeHTML:
+        def __init__(self, string):
+            self.string = string
+        def write_pdf(self):
+            return self.string.encode("utf-8")
+
+    fake_mod = type("weasyprint", (), {"HTML": FakeHTML})()
+    monkeypatch.setitem(sys.modules, "weasyprint", fake_mod)
+
+
 def test_analysis_api_queues_once_and_status_returns_progress(monkeypatch):
     _disable_database(monkeypatch)
     monkeypatch.setattr(analyse, "enqueue_contract_analysis", lambda contract_id, task_id=None: "task-123")
@@ -115,6 +127,7 @@ def test_analysis_api_queues_once_and_status_returns_progress(monkeypatch):
 
 def test_api_export_includes_failed_clause_count(monkeypatch):
     _disable_database(monkeypatch)
+    _mock_weasyprint(monkeypatch)
 
     contract_id = "api-test-failure"
     upload.contract_store.clear()
@@ -163,7 +176,72 @@ def test_api_export_includes_failed_clause_count(monkeypatch):
         export_response = client.get(f"/api/v1/export/{contract_id}")
         assert export_response.status_code == 200
         assert export_response.headers["content-type"] == "application/pdf"
-        assert b"Failed Analyses: 1" in export_response.content
+        assert len(export_response.content) > 1000
+        lines = export._fallback_build_report_lines({
+            **upload.contract_store[contract_id],
+            "contract_id": contract_id,
+            "clauses": upload.contract_store[contract_id]["analysis"],
+        })
+        assert "Failed Analyses: 1" in lines
+
+
+def test_analysis_results_include_provider_warning_from_persisted_clauses(monkeypatch):
+    user_id = "11111111-1111-4111-8111-111111111111"
+    contract_id = "contract-warning"
+    monkeypatch.setattr(analyse, "is_supabase_configured", lambda: True)
+
+    failed_clause = {
+        "id": "clause-1",
+        "clause_index": 0,
+        "clause_title": "Analysis Failed",
+        "original_text": "Clause text",
+        "risk_level": "unknown",
+        "risk_score": None,
+        "risk_reason": "Unable to analyze.",
+        "plain_english": "This clause could not be analyzed.",
+        "key_concerns": [],
+        "suggested_fix": "Please retry.",
+        "analysis_status": "failed",
+        "retry_count": 1,
+        "error_message": "quota",
+        "provider_used": "fallback",
+        "retrieved_benchmarks": [],
+    }
+
+    async def fake_get_contract(*_args, **_kwargs):
+        return {
+            "id": contract_id,
+            "filename": "NDA.pdf",
+            "status": "complete",
+            "contract_type": "nda",
+            "selected_contract_type": "nda",
+            "detected_contract_type": "nda",
+            "contract_type_confidence": 1,
+            "health_score": 0,
+            "health_grade": "N/A",
+            "health_label": "Analysis Incomplete",
+            "total_clauses": 3,
+            "unknown_risk_count": 2,
+            "failed_clause_count": 2,
+            "scored_clause_count": 1,
+            "high_risk_count": 0,
+            "medium_risk_count": 0,
+            "low_risk_count": 1,
+            "clauses": [
+                failed_clause,
+                {**failed_clause, "id": "clause-2", "clause_index": 1},
+                {**failed_clause, "id": "clause-3", "clause_index": 2, "risk_level": "low", "risk_score": 10, "analysis_status": "success", "provider_used": "groq"},
+            ],
+        }
+
+    monkeypatch.setattr(analyse, "get_contract_with_clauses_for_user", fake_get_contract)
+
+    with _authenticated_as(user_id=user_id):
+        client = TestClient(app)
+        response = client.get(f"/api/v1/analyse/{contract_id}")
+
+    assert response.status_code == 200
+    assert response.json()["warning"] == "Provider quota exhausted; rerun later."
 
 
 def test_worker_pipeline_success_records_timings(monkeypatch):

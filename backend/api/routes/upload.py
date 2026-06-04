@@ -9,7 +9,9 @@ import logging
 from uuid import UUID
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
+import fitz
 
+from core.rate_limit import rate_limit
 from models.contract import UploadResponse
 from core.status import CONTRACT_STATUS_UPLOADED
 from db.queries import create_contract, ensure_user_profile, update_contract_storage_metadata
@@ -40,6 +42,30 @@ def _can_persist_user_to_supabase(user_id: Optional[str]) -> bool:
         return False
 
 
+def _validate_pdf_bytes(file_bytes: bytes) -> None:
+    if b"%PDF-" not in file_bytes[:1024]:
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF")
+
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Uploaded file is not a readable PDF") from exc
+
+    try:
+        if doc.needs_pass:
+            raise HTTPException(status_code=400, detail="Encrypted PDFs are not supported")
+        if doc.page_count == 0:
+            raise HTTPException(status_code=400, detail="PDF contains no pages")
+    finally:
+        doc.close()
+
+
+def _debug_clause_text(clause: Any) -> str:
+    if isinstance(clause, dict):
+        return str(clause.get("text") or clause.get("original_text") or clause.get("content") or "")
+    return str(clause)
+
+
 @router.post("/upload", response_model=UploadResponse)
 async def upload_contract(
     request: Request,
@@ -54,6 +80,7 @@ async def upload_contract(
     """
     user_id = user.get("id")
     user_email = user.get("email")
+    rate_limit(request, user_id, "UPLOAD", default_count=10, default_window=3600)
 
     # In production, require a real user_id
     if not DEV_MODE and not user_id:
@@ -74,6 +101,7 @@ async def upload_contract(
             raise HTTPException(status_code=400, detail="Empty file uploaded")
         if len(file_bytes) > 50 * 1024 * 1024:  # 50MB limit
             raise HTTPException(status_code=400, detail="File too large (max 50MB)")
+        _validate_pdf_bytes(file_bytes)
     except HTTPException:
         raise
     except Exception as e:
@@ -192,8 +220,14 @@ async def get_upload_debug(
                 "clauses": [
                     {
                         "index": i,
-                        "length": len(c),
-                        "preview": c[:200] + "..." if len(c) > 200 else c
+                        "length": len(_debug_clause_text(c)),
+                        "preview": (
+                            _debug_clause_text(c)[:200] + "..."
+                            if len(_debug_clause_text(c)) > 200
+                            else _debug_clause_text(c)
+                        ),
+                        "clause_number": c.get("clause_number") if isinstance(c, dict) else None,
+                        "parsed_section_count": c.get("parsed_section_count") if isinstance(c, dict) else 1,
                     }
                     for i, c in enumerate(record["clauses"][:5] if record["clauses"] else [])
                 ],

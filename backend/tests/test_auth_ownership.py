@@ -3,6 +3,7 @@ Priority 4: Auth and ownership hardening tests.
 Covers authentication, authorization, ownership enforcement, and production fail-closed behavior.
 """
 
+import sys
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
@@ -28,6 +29,17 @@ def _authenticated_as(user_id=_TEST_USER["id"], email="test@example.com"):
         yield
     finally:
         app.dependency_overrides.pop(require_user, None)
+
+
+def _mock_weasyprint(monkeypatch):
+    class FakeHTML:
+        def __init__(self, string):
+            self.string = string
+        def write_pdf(self):
+            return self.string.encode("utf-8")
+
+    fake_mod = type("weasyprint", (), {"HTML": FakeHTML})()
+    monkeypatch.setitem(sys.modules, "weasyprint", fake_mod)
 
 
 def _set_dev_mode(monkeypatch, enabled: bool):
@@ -313,6 +325,7 @@ def test_owner_can_fetch_results_and_clause_detail_and_export(monkeypatch):
     _set_dev_mode(monkeypatch, enabled=False)
     monkeypatch.setattr(analyse, "is_supabase_configured", lambda: False)
     monkeypatch.setattr(export, "is_supabase_configured", lambda: False)
+    _mock_weasyprint(monkeypatch)
 
     contract_id = "owner-detail-test"
     upload.contract_store.clear()
@@ -412,6 +425,7 @@ def test_authenticated_upload_stores_real_user_id(monkeypatch):
     monkeypatch.setattr(upload, "save_contract_file", fake_save)
     monkeypatch.setattr(upload, "create_contract", fake_create_contract)
     monkeypatch.setattr(upload, "is_supabase_configured", lambda: False)
+    monkeypatch.setattr(upload, "_validate_pdf_bytes", lambda _bytes: None)
 
     upload.contract_store.clear()
 

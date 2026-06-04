@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadContract, startAnalysis, getHistory, pollUntilComplete, rerunAnalysis, deleteContract, exportReport } from '../lib/api';
 import { signOut, getCurrentUser } from '../lib/supabase';
@@ -55,6 +55,8 @@ const statusBadgeClass = {
   failed: 'bg-red-50 text-red-700 border-red-200',
 };
 
+const CI_BYPASS_AUTH = import.meta.env.VITE_CI_BYPASS_AUTH === 'true';
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -68,6 +70,10 @@ const Dashboard = () => {
   const [contractId, setContractId] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState('');
   const [currentStage, setCurrentStage] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [secondsSinceStatusUpdate, setSecondsSinceStatusUpdate] = useState(0);
+  const analysisStartedAtRef = useRef(null);
+  const lastStatusUpdateAtRef = useRef(null);
 
   // History filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,7 +121,31 @@ const Dashboard = () => {
     loadHistory();
   }, []);
 
+  useEffect(() => {
+    if (!loading && !analyzing) {
+      setElapsedSeconds(0);
+      setSecondsSinceStatusUpdate(0);
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      if (analysisStartedAtRef.current) {
+        setElapsedSeconds(Math.floor((now - analysisStartedAtRef.current) / 1000));
+      }
+      if (lastStatusUpdateAtRef.current) {
+        setSecondsSinceStatusUpdate(Math.floor((now - lastStatusUpdateAtRef.current) / 1000));
+      }
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [loading, analyzing]);
+
   const checkAuth = async () => {
+    if (CI_BYPASS_AUTH) {
+      setUser({ email: 'ci@example.com' });
+      return;
+    }
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       navigate('/login');
@@ -182,6 +212,10 @@ const Dashboard = () => {
     setError(null);
     setCurrentStage('upload');
     setAnalysisStatus('Uploading PDF...');
+    analysisStartedAtRef.current = Date.now();
+    lastStatusUpdateAtRef.current = Date.now();
+    setElapsedSeconds(0);
+    setSecondsSinceStatusUpdate(0);
 
     try {
       setAnalysisStatus('Uploading PDF...');
@@ -198,6 +232,8 @@ const Dashboard = () => {
       pollUntilComplete(
         uploadResponse.contract_id,
         (data) => {
+          lastStatusUpdateAtRef.current = Date.now();
+          setSecondsSinceStatusUpdate(0);
           setCurrentStage(statusToStage[data.status] || data.current_stage || 'analyse');
           setAnalysisStatus(data.status_message || 'Analyzing contract...');
         },
@@ -297,6 +333,11 @@ const Dashboard = () => {
 
   const currentStageIndex = progressStages.findIndex((stage) => stage.key === currentStage);
   const showProgress = currentStageIndex >= 0 || analysisStatus;
+  const formatElapsed = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    return `${minutes}:${String(remaining).padStart(2, '0')}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -364,6 +405,9 @@ const Dashboard = () => {
                 onFileSelect={handleFileSelect}
                 disabled={loading || analyzing}
               />
+              <p className="mt-2 text-xs text-gray-500">
+                AI-generated risk review, not legal advice. Upload only contracts you are authorized to process.
+              </p>
             </div>
 
             <button
@@ -384,9 +428,16 @@ const Dashboard = () => {
             {showProgress && (
               <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
                 <div className="flex items-center justify-between gap-4 mb-4">
-                  <p className="text-sm font-medium text-blue-900">
-                    {analysisStatus || 'Preparing analysis...'}
-                  </p>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">
+                      {analysisStatus || 'Preparing analysis...'}
+                    </p>
+                    <p className="mt-1 text-xs text-blue-700">
+                      Elapsed {formatElapsed(elapsedSeconds)}
+                      {elapsedSeconds >= 60 && ' · Analysis can take a few minutes for longer contracts.'}
+                      {secondsSinceStatusUpdate >= 8 && currentStage !== 'complete' && ' · Waiting for the next worker status update.'}
+                    </p>
+                  </div>
                   {contractId && (
                     <span className="hidden sm:inline text-xs text-blue-700 font-mono">
                       {contractId.slice(0, 8)}

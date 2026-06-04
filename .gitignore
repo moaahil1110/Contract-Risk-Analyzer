@@ -33,12 +33,15 @@ pnpm-debug.log*
 backend/chroma_db/
 chroma_db/
 backend/uploads/
+dump.rdb
 *.sqlite
 *.sqlite3
 
 # Logs and local run output
 *.log
 terminal-output-updared.txt
+risk-report*.pdf
+frontend/test-results/
 
 # OS / editor files
 .DS_Store

@@ -13,11 +13,12 @@ import textwrap
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Response, Depends
+from fastapi import APIRouter, HTTPException, Response, Depends, Request
 
 from api.routes.analyse import analysis_results
 from api.routes.upload import contract_store, _can_persist_user_to_supabase
 from api.middleware.auth import require_user, DEV_MODE
+from core.rate_limit import rate_limit
 from db.queries import get_contract_with_clauses_for_user
 from db.supabase_client import is_supabase_configured
 
@@ -93,6 +94,8 @@ async def _load_report_data(contract_id: str, user_id: str) -> Optional[Dict[str
                         "unknown_count": db_contract.get("unknown_risk_count", 0),
                         "failed_clause_count": db_contract.get("failed_clause_count", 0),
                         "scored_clause_count": db_contract.get("scored_clause_count", 0),
+                        "top_level_clause_count": db_contract.get("top_level_clause_count") or db_contract.get("total_clauses", 0),
+                        "parsed_section_count": db_contract.get("parsed_section_count") or db_contract.get("total_clauses", 0),
                     },
                     "clauses": db_contract.get("clauses", []),
                 }
@@ -209,6 +212,8 @@ def _build_html_report(report: Dict[str, Any]) -> str:
     failed = health.get("failed_clause_count", 0)
     scored = health.get("scored_clause_count", 0)
     total = health.get("total_clauses") or len(clauses)
+    top_level = health.get("top_level_clause_count") or total
+    parsed_sections = health.get("parsed_section_count") or total
 
     # Determine score color
     if score < 50:
@@ -256,6 +261,7 @@ def _build_html_report(report: Dict[str, Any]) -> str:
             <p class="risk-label">Scored</p>
         </div>
     </div>
+    <p class="clause-count-note">{top_level} top-level clause(s) analyzed from {parsed_sections} parsed section(s).</p>
     """
 
     # Top risky clauses
@@ -292,10 +298,15 @@ def _build_html_report(report: Dict[str, Any]) -> str:
     clause_sections = []
     for idx, clause in enumerate(clauses, 1):
         status = clause.get("analysis_status", "success")
+        clause_number = _html(clause.get("clause_number") or str(idx))
         risk = _html(clause.get("risk_level", "unknown").title())
         provider = _html(clause.get("provider_used") or "N/A")
         retries = clause.get("retry_count", 0)
         alignment = _html(clause.get("benchmark_alignment", "none").title())
+        predicted_clause_type = _html(clause.get("predicted_clause_type") or "Unclassified")
+        retrieval_quality = _html(clause.get("retrieval_quality", "none").title())
+        eligible_count = clause.get("eligible_benchmark_count", 0)
+        citation_suppressed = bool(clause.get("citation_suppressed"))
 
         header_chips = f"""
         <div class="clause-chips">
@@ -304,6 +315,8 @@ def _build_html_report(report: Dict[str, Any]) -> str:
             <span class="chip">Provider: {provider}</span>
             <span class="chip">Retries: {retries}</span>
             <span class="chip">RAG: {alignment}</span>
+            <span class="chip">Type: {predicted_clause_type}</span>
+            <span class="chip">Retrieval: {retrieval_quality}</span>
         </div>
         """
 
@@ -342,6 +355,9 @@ def _build_html_report(report: Dict[str, Any]) -> str:
         cited = clause.get("cited_benchmark_ids") or []
         if cited:
             evidence_parts.append(f"<p><strong>Cited Benchmarks:</strong> {_html(', '.join(str(i) for i in cited))}</p>")
+        if citation_suppressed:
+            evidence_parts.append("<p><strong>Benchmark Match:</strong> No strong benchmark match found; weak retrievals are shown only for diagnostics.</p>")
+        evidence_parts.append(f"<p><strong>Eligible Benchmarks:</strong> {_html(eligible_count)}</p>")
 
         benchmarks = clause.get("retrieved_benchmarks") or []
         if benchmarks:
@@ -352,14 +368,25 @@ def _build_html_report(report: Dict[str, Any]) -> str:
                 bclause = _html(b.get("clause_type", "unknown"))
                 brisk = _html(b.get("risk_level", "unknown"))
                 sim = _html(b.get("similarity", "n/a"))
-                bench_rows += f"<tr><td>{bench_id}</td><td>{btype}</td><td>{bclause}</td><td>{brisk}</td><td>{sim}</td></tr>"
+                eligible = "yes" if b.get("citation_eligible") else "no"
+                reason = _html(b.get("relevance_reason", ""))
+                bench_rows += f"<tr><td>{bench_id}</td><td>{btype}</td><td>{bclause}</td><td>{brisk}</td><td>{sim}</td><td>{eligible}</td><td>{reason}</td></tr>"
             evidence_parts.append(f"""
             <p class="label">Retrieved Benchmarks</p>
             <table class="benchmark-table">
-                <thead><tr><th>ID</th><th>Type</th><th>Clause</th><th>Risk</th><th>Similarity</th></tr></thead>
+                <thead><tr><th>ID</th><th>Type</th><th>Clause</th><th>Risk</th><th>Similarity</th><th>Eligible</th><th>Reason</th></tr></thead>
                 <tbody>{bench_rows}</tbody>
             </table>
             """)
+
+        subclauses = clause.get("subclauses") or []
+        if subclauses:
+            sub_rows = "".join(
+                f"<li><strong>{_html(sub.get('clause_number', ''))}</strong> "
+                f"{_html(sub.get('heading') or sub.get('section_type') or 'Subclause')}</li>"
+                for sub in subclauses[:12]
+            )
+            evidence_parts.append(f"<p class='label'>Nested Sections</p><ul class='compact-list'>{sub_rows}</ul>")
 
         if evidence_parts:
             body += f"<div class='rag-panel'><p class='label'>RAG Evidence</p>{''.join(evidence_parts)}</div>"
@@ -367,7 +394,7 @@ def _build_html_report(report: Dict[str, Any]) -> str:
         body += "</div>"
 
         clause_sections.append(
-            f"<div class='clause-section'><h3>{idx}. {_html(clause.get('clause_title', f'Clause {idx}'))}</h3>{header_chips}{body}</div>"
+            f"<div class='clause-section'><h3>{clause_number}. {_html(clause.get('clause_title', f'Clause {idx}'))}</h3>{header_chips}{body}</div>"
         )
 
     clauses_html = "".join(clause_sections)
@@ -392,6 +419,7 @@ body {{
     font-size: 11px;
     line-height: 1.5;
     color: #1f2937;
+    background: #ffffff;
 }}
 h1 {{
     font-size: 22px;
@@ -466,6 +494,18 @@ p {{ margin: 4px 0; }}
 .risk-card.scored {{ background: #eff6ff; border-color: #bfdbfe; }}
 .risk-number {{ font-size: 20px; font-weight: 700; margin: 0; }}
 .risk-label {{ font-size: 10px; color: #4b5563; margin: 2px 0 0; }}
+.clause-count-note {{
+    margin-top: 8px;
+    color: #4b5563;
+    font-size: 10px;
+    text-align: center;
+}}
+.compact-list {{
+    margin: 4px 0 0 18px;
+    padding: 0;
+    color: #374151;
+    font-size: 10px;
+}}
 .recommendations {{ margin-top: 6px; padding-left: 18px; }}
 .recommendations li {{ margin-bottom: 6px; }}
 .clause-section {{
@@ -556,7 +596,7 @@ p {{ margin: 4px 0; }}
 <h2>Risk Breakdown</h2>
 {risk_breakdown}
 
-<p style="margin-top:8px; color:#6b7280;">Total clauses: {total} &bull; Scored: {scored}</p>
+<p style="margin-top:8px; color:#6b7280;">Total clauses: {total} &bull; Scored: {scored} &bull; Parsed sections: {parsed_sections}</p>
 
 {recs_html}
 
@@ -601,6 +641,8 @@ def _fallback_build_report_lines(report: Dict[str, Any]) -> List[str]:
         f"Failed Analyses: {_plain_text(health.get('failed_clause_count', 0))}",
         f"Scored Clauses: {_plain_text(health.get('scored_clause_count', 0))}",
         f"Total Clauses: {_plain_text(health.get('total_clauses') or len(clauses))}",
+        f"Top-Level Clauses: {_plain_text(health.get('top_level_clause_count') or health.get('total_clauses') or len(clauses))}",
+        f"Parsed Sections: {_plain_text(health.get('parsed_section_count') or health.get('total_clauses') or len(clauses))}",
         "",
         "CLAUSE ANALYSIS",
         "",
@@ -626,6 +668,20 @@ def _fallback_build_report_lines(report: Dict[str, Any]) -> List[str]:
                 f"Alignment: {clause.get('benchmark_alignment', 'none')}",
                 width=92,
             ))
+            lines.extend(_fallback_wrap_block(
+                f"Predicted Clause Type: {clause.get('predicted_clause_type') or 'unclassified'}",
+                width=92,
+            ))
+            lines.extend(_fallback_wrap_block(
+                f"Retrieval Quality: {clause.get('retrieval_quality', 'none')} "
+                f"({clause.get('eligible_benchmark_count', 0)} eligible benchmark(s))",
+                width=92,
+            ))
+            if clause.get("citation_suppressed"):
+                lines.extend(_fallback_wrap_block(
+                    "No strong benchmark match found; weak retrievals are shown only for diagnostics.",
+                    width=92,
+                ))
             if clause.get("risk_rule_applied"):
                 lines.extend(_fallback_wrap_block(
                     f"Rule Applied: {clause.get('risk_rule_applied')}",
@@ -661,6 +717,7 @@ def _fallback_build_report_lines(report: Dict[str, Any]) -> List[str]:
                     f"{benchmark.get('clause_type', 'unknown')} | "
                     f"{benchmark.get('risk_level', 'unknown')} | "
                     f"similarity {benchmark.get('similarity', 'n/a')} | "
+                    f"eligible {benchmark.get('citation_eligible', False)} | "
                     f"{benchmark.get('risk_rule') or benchmark.get('risk_notes', '')}",
                     width=92,
                 ))
@@ -689,61 +746,36 @@ def _pdf_escape(value: str) -> str:
 
 
 def _build_pdf(lines: List[str]) -> bytes:
-    lines_per_page = 54
-    pages = [lines[i:i + lines_per_page] for i in range(0, len(lines), lines_per_page)] or [[]]
-    objects: List[bytes] = [
-        b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"",  # Pages object is filled after page objects are allocated.
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    ]
-    page_object_numbers: List[int] = []
+    from PIL import Image, ImageDraw, ImageFont
+    import io
 
-    for page_lines in pages:
-        stream_lines = ["BT", "/F1 10 Tf", "50 790 Td", "14 TL"]
-        for line in page_lines:
-            stream_lines.append(f"({_pdf_escape(line[:120])}) Tj")
-            stream_lines.append("T*")
-        stream_lines.append("ET")
-        stream = "\n".join(stream_lines).encode("latin-1", errors="replace")
-        contents_obj = len(objects) + 1
-        page_obj = len(objects) + 2
-        objects.append(
-            b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" +
-            stream +
-            b"\nendstream"
-        )
-        objects.append(
-            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
-            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {contents_obj} 0 R >>".encode("ascii")
-        )
-        page_object_numbers.append(page_obj)
+    width, height = 1240, 1754  # A4 at roughly 150 DPI.
+    margin_x, margin_y = 90, 90
+    line_height = 24
+    max_lines = (height - (margin_y * 2)) // line_height
+    font = ImageFont.load_default()
+    pages = []
 
-    kids = " ".join(f"{obj} 0 R" for obj in page_object_numbers)
-    objects[1] = f"<< /Type /Pages /Kids [{kids}] /Count {len(page_object_numbers)} >>".encode("ascii")
+    page_lines = [str(line) for line in (lines or [""])]
+    for start in range(0, len(page_lines), max_lines):
+        image = Image.new("RGB", (width, height), "white")
+        draw = ImageDraw.Draw(image)
+        y = margin_y
+        for line in page_lines[start:start + max_lines]:
+            draw.text((margin_x, y), line[:120], fill=(17, 24, 39), font=font)
+            y += line_height
+        pages.append(image)
 
-    output = bytearray(b"%PDF-1.4\n")
-    offsets = [0]
-    for obj_num, obj in enumerate(objects, 1):
-        offsets.append(len(output))
-        output.extend(f"{obj_num} 0 obj\n".encode("ascii"))
-        output.extend(obj)
-        output.extend(b"\nendobj\n")
-
-    xref_offset = len(output)
-    output.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
-    output.extend(b"0000000000 65535 f \n")
-    for offset in offsets[1:]:
-        output.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
-    output.extend(
-        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
-        f"startxref\n{xref_offset}\n%%EOF\n".encode("ascii")
-    )
-    return bytes(output)
+    output = io.BytesIO()
+    first, *rest = pages
+    first.save(output, format="PDF", save_all=True, append_images=rest, resolution=150.0)
+    return output.getvalue()
 
 
 @router.get("/export/{contract_id}")
 async def export_report(
     contract_id: str,
+    request: Request,
     user: Dict[str, Any] = Depends(require_user),
 ):
     """
@@ -751,6 +783,7 @@ async def export_report(
     Requires authentication and ownership of the contract.
     """
     user_id = user.get("id")
+    rate_limit(request, user_id, "EXPORT", default_count=30, default_window=3600)
     _require_supabase_persistable_user(user_id)
     report = await _load_report_data(contract_id, user_id)
     if not report:
@@ -759,15 +792,26 @@ async def export_report(
     if report.get("status") != "complete" or not report.get("health"):
         raise HTTPException(status_code=400, detail="Analysis is not complete, cannot export")
 
+    html_content = _build_html_report(report)
     try:
         from weasyprint import HTML
-        html_content = _build_html_report(report)
         pdf_bytes = HTML(string=html_content).write_pdf()
-    except ImportError:
-        logger.info("WeasyPrint is unavailable, using fallback PDF renderer")
+    except ImportError as exc:
+        if not DEV_MODE:
+            raise HTTPException(
+                status_code=503,
+                detail="PDF export renderer is unavailable. WeasyPrint must be installed in production.",
+            ) from exc
+        logger.warning("WeasyPrint is unavailable, using DEV_MODE fallback PDF renderer")
         pdf_bytes = _build_pdf(_fallback_build_report_lines(report))
     except Exception as exc:
-        logger.error(f"Failed to generate PDF with WeasyPrint, using fallback renderer: {exc}")
+        if not DEV_MODE:
+            logger.error("Failed to generate selectable PDF with WeasyPrint: %s", exc)
+            raise HTTPException(
+                status_code=503,
+                detail="PDF export renderer failed. Check WeasyPrint system dependencies.",
+            ) from exc
+        logger.warning("Failed to generate PDF with WeasyPrint, using DEV_MODE fallback renderer: %s", exc)
         pdf_bytes = _build_pdf(_fallback_build_report_lines(report))
 
     filename = f"risk-report-{_safe_filename(report.get('filename', 'contract'))}.pdf"

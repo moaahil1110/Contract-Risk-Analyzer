@@ -1,13 +1,13 @@
 """
 LLM Analyser Module
-Unified LLM interface with fallback chain:
+Unified LLM interface with fallback chain and circuit breaker:
 1. Groq llama-3.3-70b-versatile (primary)
-2. OpenRouter Gemma 4 (fallback 1)
-3. Gemini 2.0 Flash (fallback 2)
-4. Claude Sonnet (fallback 3)
+2. OpenRouter Llama 3.3 70B (fallback 1)
+3. OpenCode Go open-model endpoint (fallback 2)
 
 All calls use temperature=0.1 for consistent output.
 JSON parsing is wrapped in try/catch with retry logic.
+429 responses open a provider circuit breaker to avoid burning quota.
 """
 
 import os
@@ -15,9 +15,9 @@ import re
 import json
 import logging
 import asyncio
+import time
 import traceback
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
 
 import httpx
 
@@ -28,35 +28,108 @@ logger = logging.getLogger(__name__)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it:free")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+OPENCODE_GO_API_KEY = os.getenv("OPENCODE_GO_API_KEY")
+OPENCODE_GO_BASE_URL = os.getenv("OPENCODE_GO_BASE_URL", "https://opencode.ai/zen/go/v1").rstrip("/")
+OPENCODE_GO_MODEL = os.getenv("OPENCODE_GO_MODEL", "deepseek-v4-flash")
 LLM_TEMPERATURE = 0.1
-MAX_RETRIES = 3
+
+LLM_PROVIDER_ORDER = [p.strip() for p in os.getenv("LLM_PROVIDER_ORDER", "groq,openrouter,opencode_go").split(",") if p.strip()]
+LLM_PROVIDER_MAX_RETRIES = max(1, int(os.getenv("LLM_PROVIDER_MAX_RETRIES", "2")))
+LLM_PROVIDER_COOLDOWN_SECONDS = max(1, int(os.getenv("LLM_PROVIDER_COOLDOWN_SECONDS", "60")))
+LLM_PROVIDER_MAX_COOLDOWN_SECONDS = max(
+    LLM_PROVIDER_COOLDOWN_SECONDS,
+    int(os.getenv("LLM_PROVIDER_MAX_COOLDOWN_SECONDS", "900")),
+)
+LLM_REQUEST_DELAY_MS = max(0, int(os.getenv("LLM_REQUEST_DELAY_MS", "250")))
+
+# Circuit breaker state: provider -> available_after (monotonic timestamp)
+_provider_circuits: Dict[str, float] = {}
+
+HIGH_SEVERITY_RUBRIC = """
+RISK SEVERITY RUBRIC:
+- high: reserve for severe exposure such as unlimited or uncapped liability, confidentiality obligations ending too early, missing core confidentiality exclusions, broad non-compete/non-solicit/non-circumvention restraints, overbroad IP or ownership assignment, automatic injunctions, punitive damages, or one-sided fee-shifting/enforcement remedies.
+- medium: broad, ambiguous, or one-sided boilerplate that should be negotiated but does not independently create severe exposure.
+- low: standard administrative language or balanced clauses with normal carve-outs and reasonable limits.
+
+Do not mark ordinary NDA boilerplate as high risk unless it matches one of the high-severity categories above.
+"""
+
+HIGH_SEVERITY_PATTERNS = [
+    r"\bunlimited\b.*\bliabil",
+    r"\buncapped\b.*\bliabil",
+    r"\bwithout\s+limit(?:ation)?\b",
+    r"\ball\s+(?:legal\s+)?(?:fees|costs|expenses)\b",
+    r"\battorneys?'?\s+fees\b",
+    r"\bconfidential(?:ity)?\b.*\b(?:ends?|terminates?|expires?)\b",
+    r"\b(?:ends?|terminates?|expires?)\b.*\b(?:employment|termination|agreement)\b",
+    r"\bno\s+(?:survival|continuing obligation)\b",
+    r"\bmissing\s+(?:core\s+)?(?:exclusions|carve-outs|exceptions)\b",
+    r"\bno\s+(?:public|prior|independent|compelled|required by law)\b",
+    r"\bnon[-\s]compete\b",
+    r"\bcompeting?\b",
+    r"\bcompetitor\b",
+    r"\bnon[-\s]solicit",
+    r"\bsolicit(?:ation)?\b",
+    r"\bdivert(?:ing)?\b",
+    r"\bnon[-\s]circumvention\b",
+    r"\bcircumvent",
+    r"\bbusiness\s+opportunit",
+    r"\bassign(?:ment)?\b.*\b(?:all|any|ownership|intellectual property|ip|work product)\b",
+    r"\bownership\b.*\b(?:all|any|confidential information|inventions|work product)\b",
+    r"\bautomatic(?:ally)?\b.*\b(?:injunction|injunctive|equitable relief)\b",
+    r"\bliquidated damages\b",
+    r"\bpunitive damages\b",
+    r"\b(?:1[0-9]|[2-9]\d)(?:\.\d+)?%\s*(?:per|a)\s*month\b",
+    r"\b(?:usur(?:y|ious)|unlawful interest|illegal interest|penalty rate|excessive late fee)\b",
+    r"\blate payments?\b.*\b(?:fee|charge|penalt(?:y|ies))\b.*\b(?:per month|monthly)\b",
+    r"\b(?:fee|charge|penalt(?:y|ies))\b.*\b(?:late payments?|overdue)\b.*\b(?:per month|monthly)\b",
+    r"\bunlimited\b.*\b(?:expense|expenses|reimbursement)\b",
+    r"\b(?:expense|expenses|reimbursement)\b.*\b(?:unlimited|uncapped|without limit)\b",
+]
+
+HIGH_SEVERITY_RE = re.compile("|".join(HIGH_SEVERITY_PATTERNS), re.IGNORECASE)
 
 
-def _get_gemini_client():
-    """Lazy import and configure Gemini client."""
-    try:
-        import google.generativeai as genai
-        if GEMINI_API_KEY:
-            genai.configure(api_key=GEMINI_API_KEY)
-        return genai
-    except ImportError:
-        logger.error("google-generativeai package not installed")
-        return None
+def _is_provider_available(provider: str) -> bool:
+    available_after = _provider_circuits.get(provider)
+    if available_after is None:
+        return True
+    if time.monotonic() >= available_after:
+        del _provider_circuits[provider]
+        return True
+    return False
 
 
-def _get_anthropic_client():
-    """Lazy import and return Anthropic client."""
-    try:
-        from anthropic import Anthropic
-        if ANTHROPIC_API_KEY:
-            return Anthropic(api_key=ANTHROPIC_API_KEY)
-        return None
-    except ImportError:
-        logger.error("anthropic package not installed")
-        return None
+def _mark_provider_unavailable(provider: str, retry_after: Optional[int] = None) -> None:
+    cooldown = retry_after if retry_after is not None else LLM_PROVIDER_COOLDOWN_SECONDS
+    cooldown = max(1, min(cooldown, LLM_PROVIDER_MAX_COOLDOWN_SECONDS))
+    _provider_circuits[provider] = time.monotonic() + cooldown
+    logger.warning("Provider %s marked unavailable for %s seconds", provider, cooldown)
+
+
+def _parse_retry_after(exc: Exception) -> Optional[int]:
+    """Extract Retry-After seconds from an httpx HTTPStatusError if present."""
+    if hasattr(exc, "response") and exc.response is not None:
+        header = exc.response.headers.get("retry-after") or exc.response.headers.get("x-ratelimit-reset")
+        if header:
+            try:
+                val = int(header)
+                now = int(time.time())
+                if val > 10_000_000_000:
+                    # Some providers return epoch milliseconds.
+                    val = val // 1000
+                if val > now + 60:
+                    # Likely epoch timestamp; convert to delta
+                    return max(1, val - now)
+                return val
+            except (ValueError, TypeError):
+                pass
+    return None
+
+
+def reset_provider_circuits() -> None:
+    _provider_circuits.clear()
 
 
 def build_prompt(clause_text: str, benchmarks: List[Dict[str, Any]], contract_type: str = "unknown") -> str:
@@ -100,11 +173,13 @@ def build_prompt(clause_text: str, benchmarks: List[Dict[str, Any]], contract_ty
 
 CONTRACT TYPE: {contract_type.upper()}
 
+{HIGH_SEVERITY_RUBRIC}
+
 CLAUSE TO ANALYZE:
 {clause_text}
 
 SIMILAR BENCHMARK CLAUSES:
-{benchmark_text if benchmark_text else "No similar benchmarks found."}
+{benchmark_text if benchmark_text else "No strong benchmark match found. Do not cite benchmark IDs for this clause."}
 
 Analyze this clause and respond with ONLY a valid JSON object in this exact format:
 {{
@@ -132,6 +207,8 @@ IMPORTANT RULES:
 8. If benchmarks show this is overly broad or risky, score should be high (70-100)
 9. Consider the contract type context when assessing risk
 10. If no benchmark directly applies, set benchmark_alignment to "weak" or "none" and explain the gap
+11. If no strong benchmark match is shown, cited_benchmark_ids must be [] and benchmark_alignment must be "none"
+12. If risk_level is "high", risk_reason must explicitly name the high-severity category that applies
 
 Respond with JSON only:"""
     
@@ -247,6 +324,86 @@ def validate_response(response: Dict[str, Any]) -> bool:
     return True
 
 
+def _combined_risk_text(response: Dict[str, Any], clause_text: str) -> str:
+    # Scan only the actual clause text and its generated title — not the LLM's
+    # reasoning output.  Including risk_reason / evidence_summary / key_concerns
+    # lets the model's own words accidentally satisfy the trigger check and block
+    # a legitimate calibration downgrade (e.g. "creates unlimited financial risk"
+    # appearing in the reasoning for a vague invoicing clause).
+    return " ".join([
+        clause_text,
+        str(response.get("clause_title", "")),
+    ])
+
+
+def _has_high_severity_trigger(response: Dict[str, Any], clause_text: str) -> bool:
+    return bool(HIGH_SEVERITY_RE.search(_combined_risk_text(response, clause_text)))
+
+
+def _has_cited_high_risk_benchmark(
+    response: Dict[str, Any],
+    eligible_benchmarks: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
+    if not eligible_benchmarks:
+        return False
+
+    cited_ids = {str(benchmark_id) for benchmark_id in (response.get("cited_benchmark_ids") or [])}
+    if not cited_ids:
+        return False
+
+    for benchmark in eligible_benchmarks:
+        benchmark_ids = {
+            str(benchmark.get("id", "")),
+            str(benchmark.get("benchmark_id", "")),
+        }
+        if cited_ids.intersection(benchmark_ids) and benchmark.get("risk_level") == "high":
+            return True
+    return False
+
+
+def calibrate_risk_response(
+    response: Dict[str, Any],
+    clause_text: str,
+    contract_type: str = "unknown",
+    eligible_count: int = 0,
+    eligible_benchmarks: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """
+    Prevent unsupported high-risk labels from distorting health scores.
+
+    A high rating is kept when:
+    1. the clause text itself contains a concrete high-severity trigger, OR
+    2. the LLM cites a citation-eligible high-risk benchmark.
+
+    Without either, high is downgraded to medium.
+    """
+    if response.get("risk_level") != "high":
+        return response
+
+    if _has_high_severity_trigger(response, clause_text):
+        return response
+
+    if _has_cited_high_risk_benchmark(response, eligible_benchmarks):
+        return response
+
+    calibrated = dict(response)
+    calibrated["risk_level"] = "medium"
+    try:
+        calibrated["risk_score"] = min(int(calibrated.get("risk_score", 60)), 69)
+    except (TypeError, ValueError):
+        calibrated["risk_score"] = 60
+
+    reason = str(calibrated.get("risk_reason", "")).strip()
+    calibrated["risk_reason"] = (
+        f"{reason} severity calibration downgraded this to medium risk because no concrete "
+        "high-severity trigger or eligible high-risk benchmark supported a high label."
+    ).strip()
+    concerns = calibrated.get("key_concerns")
+    if isinstance(concerns, list):
+        calibrated["key_concerns"] = concerns + ["High-risk label downgraded by severity calibration"]
+    return calibrated
+
+
 def _evidence_failure_fields() -> Dict[str, Any]:
     return {
         "cited_benchmark_ids": [],
@@ -257,13 +414,13 @@ def _evidence_failure_fields() -> Dict[str, Any]:
 
 
 def _try_groq(prompt: str) -> Optional[str]:
-    """Try Groq and return raw response text."""
+    """Try Groq and return raw response text. Returns None on 429 to open circuit."""
     if not GROQ_API_KEY:
         logger.warning("GROQ_API_KEY not set")
         return None
 
     try:
-        logger.info(f"Calling Groq ({GROQ_MODEL})...")
+        logger.info("Calling Groq (%s)...", GROQ_MODEL)
 
         response = httpx.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -278,23 +435,31 @@ def _try_groq(prompt: str) -> Optional[str]:
             },
             timeout=30,
         )
-        logger.info(f"Groq status: {response.status_code}")
+        logger.info("Groq status: %s", response.status_code)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
 
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            retry_after = _parse_retry_after(e)
+            _mark_provider_unavailable("groq", retry_after)
+            logger.warning("Groq returned 429, cooling down for %s seconds", retry_after or LLM_PROVIDER_COOLDOWN_SECONDS)
+            return None
+        logger.error("Groq HTTP error: %s", e)
+        raise
     except Exception as e:
-        logger.error(f"Groq error: {e}")
+        logger.error("Groq error: %s", e)
         raise
 
 
 def _try_openrouter(prompt: str) -> Optional[str]:
-    """Try OpenRouter API and return raw response text."""
+    """Try OpenRouter API and return raw response text. Returns None on 429 to open circuit."""
     if not OPENROUTER_API_KEY:
         logger.warning("OPENROUTER_API_KEY not set")
         return None
 
     try:
-        logger.info(f"Calling OpenRouter ({OPENROUTER_MODEL})...")
+        logger.info("Calling OpenRouter (%s)...", OPENROUTER_MODEL)
 
         response = httpx.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -309,69 +474,61 @@ def _try_openrouter(prompt: str) -> Optional[str]:
             },
             timeout=60,
         )
-        logger.info(f"OpenRouter status: {response.status_code}")
-        logger.info(f"OpenRouter response: {response.text[:500]}")
+        logger.info("OpenRouter status: %s", response.status_code)
+        logger.info("OpenRouter response: %s", response.text[:500])
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
 
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            retry_after = _parse_retry_after(e)
+            _mark_provider_unavailable("openrouter", retry_after)
+            logger.warning("OpenRouter returned 429, cooling down for %s seconds", retry_after or LLM_PROVIDER_COOLDOWN_SECONDS)
+            return None
+        logger.error("OpenRouter HTTP error: %s", e)
+        raise
     except Exception as e:
-        logger.error(f"OpenRouter error: {e}")
+        logger.error("OpenRouter error: %s", e)
         raise
 
 
-def _try_gemini(prompt: str) -> Optional[str]:
-    """Try Gemini 2.0 Flash and return raw response text."""
+def _try_opencode_go(prompt: str) -> Optional[str]:
+    """Try OpenCode Go and return raw response text. Returns None on 429 to open circuit."""
+    if not OPENCODE_GO_API_KEY:
+        logger.warning("OPENCODE_GO_API_KEY not set")
+        return None
+
     try:
-        genai = _get_gemini_client()
-        if not genai or not GEMINI_API_KEY:
-            return None
-        
-        logger.info("Calling Gemini 2.0 Flash...")
-        
-        # Configure model
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            generation_config={
+        logger.info("Calling OpenCode Go (%s)...", OPENCODE_GO_MODEL)
+
+        response = httpx.post(
+            f"{OPENCODE_GO_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENCODE_GO_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": OPENCODE_GO_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
                 "temperature": LLM_TEMPERATURE,
             },
+            timeout=60,
         )
-        
-        response = model.generate_content(prompt)
-        
-        if response and response.text:
-            return response.text
-        return None
-        
-    except Exception as e:
-        logger.warning(f"Gemini call failed: {e}")
-        return None
+        logger.info("OpenCode Go status: %s", response.status_code)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
 
-
-def _try_claude(prompt: str) -> Optional[str]:
-    """Try Claude and return raw response text."""
-    try:
-        client = _get_anthropic_client()
-        if not client or not ANTHROPIC_API_KEY:
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            retry_after = _parse_retry_after(e)
+            _mark_provider_unavailable("opencode_go", retry_after)
+            logger.warning("OpenCode Go returned 429, cooling down for %s seconds", retry_after or LLM_PROVIDER_COOLDOWN_SECONDS)
             return None
-        
-        logger.info("Calling Claude...")
-        
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=2000,
-            temperature=LLM_TEMPERATURE,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-        )
-        
-        if response and response.content:
-            return response.content[0].text
-        return None
-        
+        logger.error("OpenCode Go HTTP error: %s", e)
+        raise
     except Exception as e:
-        logger.warning(f"Claude call failed: {e}")
-        return None
+        logger.error("OpenCode Go error: %s", e)
+        raise
 
 
 def _call_provider(provider: str, prompt: str) -> Optional[str]:
@@ -380,12 +537,30 @@ def _call_provider(provider: str, prompt: str) -> Optional[str]:
         return _try_groq(prompt)
     elif provider == "openrouter":
         return _try_openrouter(prompt)
-    elif provider == "gemini":
-        return _try_gemini(prompt)
-    elif provider == "claude":
-        return _try_claude(prompt)
+    elif provider in {"opencode_go", "opencode"}:
+        return _try_opencode_go(prompt)
     return None
 
+
+def _mock_analyse_clause(contract_type: str = "unknown") -> Dict[str, Any]:
+    """Return deterministic mock analysis for CI-safe E2E."""
+    return {
+        "clause_title": "Mock Confidentiality Clause",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "risk_reason": "This clause is overly broad in defining confidential information.",
+        "plain_english": "The agreement protects all information shared between parties without clear boundaries.",
+        "key_concerns": ["Overly broad definition", "No carve-outs for public information"],
+        "suggested_fix": "Limit confidential information to explicitly marked or orally designated items.",
+        "cited_benchmark_ids": ["mock-bench-1"],
+        "risk_rule_applied": "Confidential information should be clearly defined and marked.",
+        "evidence_summary": "Benchmark indicates standard NDAs require explicit marking.",
+        "benchmark_alignment": "partial",
+        "provider_used": "mock",
+        "analysis_status": "success",
+        "retry_count": 0,
+        "error_message": None,
+    }
 
 async def analyse_clause(
     clause_text: str,
@@ -394,19 +569,14 @@ async def analyse_clause(
 ) -> Dict[str, Any]:
     """
     Analyze a clause using LLM with fallback chain.
-    
-    Args:
-        clause_text: The clause to analyze
-        benchmarks: Similar benchmark clauses from RAG
-        contract_type: Type of contract (nda, employment, vendor)
-    
-    Returns:
-        Analysis dict matching the Clause model
     """
+    if os.getenv("E2E_MOCK_PROVIDER", "").lower() == "true":
+        return _mock_analyse_clause(contract_type)
+
     try:
         prompt = build_prompt(clause_text, benchmarks, contract_type)
     except Exception as e:
-        logger.error(f"Full error in build_prompt: {traceback.format_exc()}")
+        logger.error("Full error in build_prompt: %s", traceback.format_exc())
         return {
             "clause_title": "Analysis Failed",
             "risk_level": "unknown",
@@ -421,49 +591,66 @@ async def analyse_clause(
             "provider_used": "error",
             **_evidence_failure_fields(),
         }
-    
-    # Provider chain with fallbacks
-    providers = ["groq", "openrouter", "gemini", "claude"]
+    # Provider chain with circuit breaker and fallbacks.
+    providers = [p for p in LLM_PROVIDER_ORDER if p in ("groq", "openrouter", "opencode_go", "opencode")]
     failed_attempts = 0
     last_error = None
-    
+    providers_tried = 0
+
     for provider in providers:
-        logger.info(f"Trying provider: {provider}")
-        
-        # Try multiple times with different parsing strategies
-        for attempt in range(MAX_RETRIES):
+        if not _is_provider_available(provider):
+            logger.info("Skipping provider %s (circuit open)", provider)
+            continue
+
+        logger.info("Trying provider: %s", provider)
+        providers_tried += 1
+
+        if LLM_REQUEST_DELAY_MS > 0 and providers_tried > 1:
+            await asyncio.sleep(LLM_REQUEST_DELAY_MS / 1000.0)
+
+        for attempt in range(LLM_PROVIDER_MAX_RETRIES):
+            if not _is_provider_available(provider):
+                logger.info("Stopping retries for provider %s (circuit opened)", provider)
+                break
+
             try:
-                # Call the provider
                 response_text = await asyncio.to_thread(_call_provider, provider, prompt)
-                
+
                 if not response_text:
-                    logger.warning(f"{provider} returned empty response (attempt {attempt + 1})")
+                    logger.warning("%s returned empty response (attempt %s)", provider, attempt + 1)
                     failed_attempts += 1
                     last_error = f"{provider} returned empty response"
+                    if not _is_provider_available(provider):
+                        break
                     continue
-                
-                # Parse and validate
+
                 parsed = clean_and_parse(response_text)
-                
+
                 if parsed and validate_response(parsed):
-                    # Add metadata
+                    parsed = calibrate_risk_response(
+                        parsed,
+                        clause_text,
+                        contract_type,
+                        eligible_count=len(benchmarks),
+                        eligible_benchmarks=benchmarks,
+                    )
                     parsed["provider_used"] = provider
                     parsed["analysis_status"] = "retried" if failed_attempts > 0 else "success"
                     parsed["retry_count"] = failed_attempts
                     parsed["error_message"] = None
-                    logger.info(f"Successfully analyzed with {provider}")
+                    logger.info("Successfully analyzed with %s", provider)
                     return parsed
                 else:
-                    logger.warning(f"{provider} returned invalid response (attempt {attempt + 1})")
+                    logger.warning("%s returned invalid response (attempt %s)", provider, attempt + 1)
                     failed_attempts += 1
                     last_error = f"{provider} returned invalid response"
-                    
+
             except Exception as e:
-                logger.error(f"Full error in {provider}: {traceback.format_exc()}")
+                logger.error("Full error in %s: %s", provider, traceback.format_exc())
                 failed_attempts += 1
                 last_error = str(e)
                 continue
-    
+
     # All providers failed - return fallback response
     logger.error("All LLM providers failed, returning fallback response")
     return {

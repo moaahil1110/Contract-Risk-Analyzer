@@ -3,6 +3,7 @@ Priority 5: Product polish tests.
 Covers history filters, soft delete, rerun, and polished PDF export.
 """
 
+import sys
 from contextlib import contextmanager
 from fastapi.testclient import TestClient
 
@@ -453,6 +454,29 @@ def test_export_includes_polished_sections_and_rag_data(monkeypatch):
         assert "Similarity" in content
         # Page numbers via @page
         assert "counter(page)" in content
+
+
+def test_export_fails_closed_when_weasyprint_breaks_in_production(monkeypatch):
+    _disable_database(monkeypatch)
+    monkeypatch.setattr(export, "DEV_MODE", False)
+
+    class BrokenHTML:
+        def __init__(self, string):
+            self.string = string
+        def write_pdf(self):
+            raise RuntimeError("renderer broken")
+
+    fake_mod = type("weasyprint", (), {"HTML": BrokenHTML})()
+    monkeypatch.setitem(sys.modules, "weasyprint", fake_mod)
+    contract_id = "c-export-prod-fail"
+    _complete_contract_in_store(contract_id, _TEST_USER["id"])
+
+    with _authenticated_as():
+        client = TestClient(app)
+        r = client.get(f"/api/v1/export/{contract_id}")
+
+    assert r.status_code == 503
+    assert "PDF export renderer failed" in r.json()["detail"]
 
 def test_export_requires_auth_and_ownership(monkeypatch):
     _disable_database(monkeypatch)

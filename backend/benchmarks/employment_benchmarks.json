@@ -598,5 +598,605 @@
       "waiver",
       "statutory-claims"
     ]
+  },
+  {
+    "benchmark_id": "employment_031",
+    "contract_type": "employment",
+    "clause_type": "commencement",
+    "risk_level": "low",
+    "clause_text": "Employment starts on the stated commencement date after completion of required onboarding checks and work authorization verification.",
+    "risk_rule": "Commencement clauses should clearly state the start date and conditions before work begins.",
+    "why_risky": "A clear start date and lawful preconditions reduce ambiguity.",
+    "safe_version": "State the start date, any onboarding conditions, and that employment begins only after required checks are complete.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "commencement",
+      "start-date",
+      "onboarding"
+    ]
+  },
+  {
+    "benchmark_id": "employment_032",
+    "contract_type": "employment",
+    "clause_type": "commencement",
+    "risk_level": "medium",
+    "clause_text": "The company may change the commencement date at its discretion after notice to the employee.",
+    "risk_rule": "Start-date changes should be limited to reasonable business or compliance reasons.",
+    "why_risky": "Unilateral start-date changes can create planning and income uncertainty.",
+    "safe_version": "Allow start-date changes only for defined reasons, with prompt written notice and a reasonable outside date.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "commencement",
+      "unilateral-change",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "employment_033",
+    "contract_type": "employment",
+    "clause_type": "commencement",
+    "risk_level": "high",
+    "clause_text": "The company may delay the commencement date indefinitely without pay, compensation, or obligation to provide a new start date.",
+    "risk_rule": "Indefinite delay without pay or commitment creates high employee uncertainty.",
+    "why_risky": "The employee may lose other opportunities while the employer has no firm obligation.",
+    "safe_version": "Set a fixed outside start date and allow either party to withdraw if employment has not begun by then.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "commencement",
+      "indefinite-delay",
+      "pay"
+    ]
+  },
+  {
+    "benchmark_id": "employment_034",
+    "contract_type": "employment",
+    "clause_type": "job_duties",
+    "risk_level": "low",
+    "clause_text": "Employee will perform the duties reasonably associated with the job title and any related duties consistent with the employee's skills and role.",
+    "risk_rule": "Duties should be tied to the role and reasonable skill expectations.",
+    "why_risky": "Role-based duties are predictable and commercially standard.",
+    "safe_version": "Tie duties to the stated role, skill level, and reasonable business needs.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "duties",
+      "role",
+      "responsibilities"
+    ]
+  },
+  {
+    "benchmark_id": "employment_035",
+    "contract_type": "employment",
+    "clause_type": "job_duties",
+    "risk_level": "medium",
+    "clause_text": "Employee will perform duties assigned from time to time, including related tasks outside the listed job description when reasonably required.",
+    "risk_rule": "Flexible duties should remain related to the role and reasonable business needs.",
+    "why_risky": "Some flexibility is acceptable, but open-ended wording can expand obligations.",
+    "safe_version": "Limit additional duties to tasks reasonably related to the role and employee qualifications.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "duties",
+      "flexibility",
+      "job-description"
+    ]
+  },
+  {
+    "benchmark_id": "employment_036",
+    "contract_type": "employment",
+    "clause_type": "job_duties",
+    "risk_level": "high",
+    "clause_text": "Employee must perform any duties assigned by the company, whether or not related to the position, location, qualifications, or agreed compensation.",
+    "risk_rule": "Unlimited duty assignment creates role and compensation risk.",
+    "why_risky": "The employer could materially change the job without consent or pay adjustment.",
+    "safe_version": "Require material duty changes to be reasonable, role-related, and documented in writing.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "duties",
+      "unlimited",
+      "role-change"
+    ]
+  },
+  {
+    "benchmark_id": "employment_037",
+    "contract_type": "employment",
+    "clause_type": "reporting_structure",
+    "risk_level": "low",
+    "clause_text": "Employee will report to the designated manager or another manager reasonably appointed by the company.",
+    "risk_rule": "Reporting lines should identify supervision while allowing reasonable replacement managers.",
+    "why_risky": "This gives operational flexibility without changing the core role.",
+    "safe_version": "Identify the reporting manager or function and allow reasonable updates by written notice.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "reporting",
+      "supervision",
+      "manager"
+    ]
+  },
+  {
+    "benchmark_id": "employment_038",
+    "contract_type": "employment",
+    "clause_type": "reporting_structure",
+    "risk_level": "medium",
+    "clause_text": "The company may change the employee's reporting line to meet business needs after notice to the employee.",
+    "risk_rule": "Reporting changes should not materially reduce status or responsibilities without review.",
+    "why_risky": "Changing reporting lines can affect authority and career progression.",
+    "safe_version": "Allow reporting changes with notice and protect against material demotion without written agreement.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "reporting",
+      "notice",
+      "management"
+    ]
+  },
+  {
+    "benchmark_id": "employment_039",
+    "contract_type": "employment",
+    "clause_type": "reporting_structure",
+    "risk_level": "high",
+    "clause_text": "The company may reassign the employee to any supervisor, department, or reporting structure and reduce responsibilities without consent or compensation adjustment.",
+    "risk_rule": "Reporting changes should not be used to impose demotion or material role reduction unilaterally.",
+    "why_risky": "This can enable constructive demotion while preserving employer discretion.",
+    "safe_version": "Require consent or documented business justification for material demotion or responsibility reduction.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "reporting",
+      "demotion",
+      "unilateral"
+    ]
+  },
+  {
+    "benchmark_id": "employment_040",
+    "contract_type": "employment",
+    "clause_type": "workplace",
+    "risk_level": "low",
+    "clause_text": "The primary workplace is the stated office, with remote or alternate work permitted under company policy and reasonable notice.",
+    "risk_rule": "Workplace clauses should identify location and remote-work expectations.",
+    "why_risky": "Clear location expectations reduce commuting and relocation disputes.",
+    "safe_version": "State the primary workplace, remote-work rules, and notice required for location changes.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "workplace",
+      "location",
+      "remote-work"
+    ]
+  },
+  {
+    "benchmark_id": "employment_041",
+    "contract_type": "employment",
+    "clause_type": "workplace",
+    "risk_level": "medium",
+    "clause_text": "The company may require the employee to work from another company location within reasonable commuting distance.",
+    "risk_rule": "Location flexibility should be geographically reasonable.",
+    "why_risky": "Reasonable local moves are common, but the commuting standard should be clear.",
+    "safe_version": "Limit required location changes to reasonable commuting distance or require mutual agreement.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "workplace",
+      "commuting",
+      "location-change"
+    ]
+  },
+  {
+    "benchmark_id": "employment_042",
+    "contract_type": "employment",
+    "clause_type": "workplace",
+    "risk_level": "high",
+    "clause_text": "The company may relocate the employee anywhere or require permanent office attendance without notice, relocation support, or compensation review.",
+    "risk_rule": "Relocation obligations should require notice, support, and consent for material moves.",
+    "why_risky": "Unlimited relocation can impose major financial and personal burden.",
+    "safe_version": "Require written consent, reasonable notice, and relocation support for material workplace changes.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "workplace",
+      "relocation",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "employment_043",
+    "contract_type": "employment",
+    "clause_type": "work_hours",
+    "risk_level": "low",
+    "clause_text": "Normal working hours are stated in the contract, with overtime handled under applicable law and approved company policy.",
+    "risk_rule": "Hours clauses should state expected hours and preserve statutory overtime rights.",
+    "why_risky": "Clear hours and lawful overtime handling reduce wage disputes.",
+    "safe_version": "State normal hours, overtime approval process, and applicable statutory protections.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "hours",
+      "overtime",
+      "schedule"
+    ]
+  },
+  {
+    "benchmark_id": "employment_044",
+    "contract_type": "employment",
+    "clause_type": "work_hours",
+    "risk_level": "medium",
+    "clause_text": "Employee may be required to work additional reasonable hours when business needs require it.",
+    "risk_rule": "Additional hours should be reasonable and consistent with law.",
+    "why_risky": "Reasonable flexibility is common, but extra hours should not be unlimited.",
+    "safe_version": "Limit additional hours to reasonable business needs and applicable wage-hour rules.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "hours",
+      "additional-hours",
+      "reasonable"
+    ]
+  },
+  {
+    "benchmark_id": "employment_045",
+    "contract_type": "employment",
+    "clause_type": "work_hours",
+    "risk_level": "high",
+    "clause_text": "Employee must work any hours required by the company without overtime, additional pay, rest breaks, or regard to statutory limits.",
+    "risk_rule": "Work-hour clauses cannot waive mandatory wage, overtime, or rest protections.",
+    "why_risky": "This creates serious wage-hour and compliance risk.",
+    "safe_version": "Preserve all statutory overtime, break, working-time, and minimum wage rights.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "hours",
+      "overtime-waiver",
+      "statutory-rights"
+    ]
+  },
+  {
+    "benchmark_id": "employment_046",
+    "contract_type": "employment",
+    "clause_type": "leave",
+    "risk_level": "low",
+    "clause_text": "Employee is entitled to annual leave and public holidays in accordance with applicable law and company policy.",
+    "risk_rule": "Leave clauses should preserve statutory minimums and explain policy source.",
+    "why_risky": "This is standard and avoids waiving mandatory leave rights.",
+    "safe_version": "State leave entitlement and confirm it will not be less than applicable legal minimums.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "leave",
+      "vacation",
+      "statutory"
+    ]
+  },
+  {
+    "benchmark_id": "employment_047",
+    "contract_type": "employment",
+    "clause_type": "leave",
+    "risk_level": "medium",
+    "clause_text": "Annual leave must be approved in advance and may be restricted during peak business periods.",
+    "risk_rule": "Leave approval rules should be reasonable and not defeat statutory entitlement.",
+    "why_risky": "Approval conditions are normal but can become restrictive if undefined.",
+    "safe_version": "Require reasonable approval standards and allow statutory leave to be taken within the legal period.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "leave",
+      "approval",
+      "business-needs"
+    ]
+  },
+  {
+    "benchmark_id": "employment_048",
+    "contract_type": "employment",
+    "clause_type": "leave",
+    "risk_level": "high",
+    "clause_text": "Unused leave is forfeited without payment and the company may deny all leave requests for business reasons.",
+    "risk_rule": "Leave forfeiture and blanket denial can violate statutory leave protections.",
+    "why_risky": "Employees may lose legal entitlements or accrued value.",
+    "safe_version": "Preserve statutory carryover or payout rights and require reasonable scheduling of leave.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "leave",
+      "forfeiture",
+      "denial"
+    ]
+  },
+  {
+    "benchmark_id": "employment_049",
+    "contract_type": "employment",
+    "clause_type": "sick_leave",
+    "risk_level": "low",
+    "clause_text": "Employee may take sick leave according to applicable law and company policy after giving reasonable notice where practicable.",
+    "risk_rule": "Sick leave should preserve statutory medical absence rights.",
+    "why_risky": "Reasonable notice is standard while protecting illness-related rights.",
+    "safe_version": "Reference applicable sick leave law, notice expectations, and documentation limits.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "sick-leave",
+      "illness",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "employment_050",
+    "contract_type": "employment",
+    "clause_type": "sick_leave",
+    "risk_level": "medium",
+    "clause_text": "The company may require reasonable medical certification for extended sick leave.",
+    "risk_rule": "Medical documentation requirements should be proportionate and privacy-conscious.",
+    "why_risky": "Certification can be appropriate but should not be excessive.",
+    "safe_version": "Limit certification to extended absences or legal requirements and protect medical privacy.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "sick-leave",
+      "medical-certificate",
+      "privacy"
+    ]
+  },
+  {
+    "benchmark_id": "employment_051",
+    "contract_type": "employment",
+    "clause_type": "sick_leave",
+    "risk_level": "high",
+    "clause_text": "Any sickness absence may be unpaid, treated as misconduct, or result in immediate termination at the company's discretion.",
+    "risk_rule": "Sick leave cannot be converted into automatic misconduct or unlawful termination risk.",
+    "why_risky": "This can punish protected medical absence and create compliance exposure.",
+    "safe_version": "Preserve statutory sick leave, disability, and anti-retaliation protections.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "sick-leave",
+      "termination",
+      "retaliation"
+    ]
+  },
+  {
+    "benchmark_id": "employment_052",
+    "contract_type": "employment",
+    "clause_type": "company_policies",
+    "risk_level": "low",
+    "clause_text": "Employee must comply with reasonable company policies provided to the employee, as updated from time to time consistent with law.",
+    "risk_rule": "Policy compliance clauses should be reasonable, disclosed, and lawful.",
+    "why_risky": "This supports operations without making hidden policies binding.",
+    "safe_version": "Require policies to be provided, reasonable, and consistent with applicable law.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "policies",
+      "handbook",
+      "compliance"
+    ]
+  },
+  {
+    "benchmark_id": "employment_053",
+    "contract_type": "employment",
+    "clause_type": "company_policies",
+    "risk_level": "medium",
+    "clause_text": "Company policies may change, and continued employment indicates acceptance of updated policies after notice.",
+    "risk_rule": "Policy changes should have notice and should not alter core contract terms without agreement.",
+    "why_risky": "Policy flexibility is normal but can affect material terms.",
+    "safe_version": "Separate operational policies from material contract changes requiring written agreement.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "policies",
+      "updates",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "employment_054",
+    "contract_type": "employment",
+    "clause_type": "company_policies",
+    "risk_level": "high",
+    "clause_text": "The company may amend any policy or contract term at any time without notice, and employee is automatically bound by all changes.",
+    "risk_rule": "Policies should not allow unilateral amendment of core contract terms without notice or consent.",
+    "why_risky": "This can rewrite pay, duties, benefits, or discipline rules unilaterally.",
+    "safe_version": "Limit unilateral changes to non-material policies and require notice or consent for material terms.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "policies",
+      "unilateral-amendment",
+      "contract-terms"
+    ]
+  },
+  {
+    "benchmark_id": "employment_055",
+    "contract_type": "employment",
+    "clause_type": "probation",
+    "risk_level": "low",
+    "clause_text": "Employment is subject to a stated probationary period during which performance will be reviewed under applicable law.",
+    "risk_rule": "Probation clauses should state duration and preserve statutory rights.",
+    "why_risky": "A clear probation period is common and predictable.",
+    "safe_version": "State duration, review process, notice rules, and statutory protections.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "probation",
+      "review",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "employment_056",
+    "contract_type": "employment",
+    "clause_type": "probation",
+    "risk_level": "medium",
+    "clause_text": "The company may extend probation once for performance or conduct reasons after notifying the employee.",
+    "risk_rule": "Probation extensions should be limited and justified.",
+    "why_risky": "A single reasoned extension may be fair, but open-ended extensions are risky.",
+    "safe_version": "Allow only one reasonable extension with written reasons and a fixed end date.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "probation",
+      "extension",
+      "performance"
+    ]
+  },
+  {
+    "benchmark_id": "employment_057",
+    "contract_type": "employment",
+    "clause_type": "probation",
+    "risk_level": "high",
+    "clause_text": "The company may keep the employee on probation indefinitely and terminate without notice, process, or statutory payments.",
+    "risk_rule": "Indefinite probation and waiver of statutory notice/payment rights are high risk.",
+    "why_risky": "The employee may lose ordinary protections for an unlimited period.",
+    "safe_version": "Set a fixed probation period and preserve required notice, process, and statutory payments.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "probation",
+      "indefinite",
+      "statutory-rights"
+    ]
+  },
+  {
+    "benchmark_id": "employment_058",
+    "contract_type": "employment",
+    "clause_type": "role_changes",
+    "risk_level": "low",
+    "clause_text": "Material changes to title, duties, compensation, or workplace will be discussed and documented in writing.",
+    "risk_rule": "Material employment changes should be documented and agreed where required.",
+    "why_risky": "Written change control reduces disputes about amended terms.",
+    "safe_version": "Require material changes to be confirmed in writing and comply with applicable law.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "role-change",
+      "written-agreement",
+      "material-terms"
+    ]
+  },
+  {
+    "benchmark_id": "employment_059",
+    "contract_type": "employment",
+    "clause_type": "role_changes",
+    "risk_level": "medium",
+    "clause_text": "The company may make reasonable changes to duties or reporting lines to meet business needs.",
+    "risk_rule": "Role-change flexibility should stay reasonable and related to the position.",
+    "why_risky": "This is acceptable if it does not materially reduce pay or status.",
+    "safe_version": "Limit changes to reasonable, role-related adjustments and protect compensation/status.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "role-change",
+      "business-needs",
+      "duties"
+    ]
+  },
+  {
+    "benchmark_id": "employment_060",
+    "contract_type": "employment",
+    "clause_type": "role_changes",
+    "risk_level": "high",
+    "clause_text": "The company may change title, duties, compensation, workplace, and benefits at any time without consent or notice.",
+    "risk_rule": "Unilateral amendment of core employment terms is high risk.",
+    "why_risky": "The employer could rewrite the bargain after signing.",
+    "safe_version": "Require employee consent for material changes to pay, title, benefits, workplace, or duties.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "role-change",
+      "unilateral",
+      "compensation"
+    ]
   }
 ]

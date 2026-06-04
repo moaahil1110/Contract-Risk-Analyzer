@@ -16,6 +16,8 @@ import {
   Search,
 } from 'lucide-react';
 
+const CI_BYPASS_AUTH = import.meta.env.VITE_CI_BYPASS_AUTH === 'true';
+
 const Results = () => {
   const navigate = useNavigate();
   const { contractId } = useParams();
@@ -41,6 +43,7 @@ const Results = () => {
   }, [contractId]);
 
   const checkAuth = async () => {
+    if (CI_BYPASS_AUTH) return;
     const user = await getCurrentUser();
     if (!user) {
       navigate('/login');
@@ -108,6 +111,8 @@ const Results = () => {
   const health = analysis?.health || {};
   const failedClauseCount = health.failed_clause_count || 0;
   const unknownCount = health.unknown_count || 0;
+  const topLevelClauseCount = health.top_level_clause_count || health.total_clauses || analysis?.top_level_clause_count || 0;
+  const parsedSectionCount = health.parsed_section_count || analysis?.parsed_section_count || topLevelClauseCount;
 
   if (loading) {
     return (
@@ -205,6 +210,12 @@ const Results = () => {
               The analysis used {analysis.contract_type}.
             </div>
           )}
+          {analysis?.warning && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <span>{analysis.warning}</span>
+            </div>
+          )}
         </div>
 
         {/* Overall Score */}
@@ -258,7 +269,7 @@ const Results = () => {
                   </div>
                 </div>
                 <p className="text-center text-gray-500 mt-3 text-sm">
-                  Total: {analysis.health.total_clauses || 0} clauses analyzed
+                  {topLevelClauseCount} top-level clauses analyzed from {parsedSectionCount} parsed sections
                 </p>
               </div>
             </div>

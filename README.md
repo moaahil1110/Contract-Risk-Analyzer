@@ -53,6 +53,7 @@ Current gates:
 ```bash
 python3 -m compileall backend
 python3 -m pytest backend/tests
+EMBEDDING_OFFLINE=true python3 backend/scripts/run_rag_eval.py
 cd frontend
 npm run build
 ```
@@ -83,3 +84,111 @@ Worker pool selection is configured by the app so the command stays the same acr
 - `DEV_MODE=true` defaults to `CELERY_WORKER_POOL=solo` and `CELERY_WORKER_CONCURRENCY=1`. This avoids macOS `prefork` crashes with PyTorch/Chroma/sentence-transformers.
 - `DEV_MODE=false` defaults to `CELERY_WORKER_POOL=prefork` with production concurrency from `CELERY_WORKER_CONCURRENCY` or `WEB_CONCURRENCY`.
 - Unexpected worker task failures are persisted back to Supabase as failed jobs/contracts, so the frontend does not poll stale progress forever.
+
+## PDF Export Dependencies
+
+Polished PDF reports use WeasyPrint. It is preinstalled in the Docker image. For local macOS development, install the system libraries first:
+
+```bash
+brew install pango cairo gdk-pixbuf libffi
+```
+
+In production, WeasyPrint is required. If it is unavailable, `/export/{contract_id}` returns `503` instead of silently generating a lower-quality fallback report. In `DEV_MODE=true`, the backend may use a local fallback renderer for debugging. The `/health/details` endpoint reports whether WeasyPrint is usable.
+
+## Deployment Checklist
+
+Apply Supabase migrations in order:
+
+```text
+backend/db/migrations/001_initial_schema.sql
+backend/db/migrations/002_production_hardening_metadata.sql
+backend/db/migrations/003_rag_evidence_metadata.sql
+backend/db/migrations/004_background_jobs_and_progress.sql
+backend/db/migrations/005_security_auth_policies.sql
+backend/db/migrations/006_product_polish_contract_lifecycle.sql
+backend/db/migrations/007_rag_precision_metadata.sql
+backend/db/migrations/008_clause_hierarchy_metadata.sql
+```
+
+Create a private Supabase Storage bucket named `contracts`.
+
+Backend production env:
+
+```text
+DEV_MODE=false
+ALLOWED_ORIGINS=https://<your-vercel-domain>
+SUPABASE_URL=<project-url>
+SUPABASE_SERVICE_KEY=<server-only-secret-key>
+SUPABASE_STORAGE_BUCKET=contracts
+REDIS_URL=<redis-url>
+CELERY_RESULT_BACKEND=<redis-url>
+EMBEDDING_OFFLINE=true
+EMBEDDING_MODEL_PATH=/app/models/all-MiniLM-L6-v2
+GROQ_API_KEY=<provider-key>
+OPENROUTER_API_KEY=<provider-key>
+OPENCODE_GO_API_KEY=<provider-key>
+OPENCODE_GO_BASE_URL=https://opencode.ai/zen/go/v1
+OPENCODE_GO_MODEL=deepseek-v4-flash
+LLM_PROVIDER_ORDER=groq,opencode_go
+```
+
+Frontend production env:
+
+```text
+VITE_API_URL=https://<railway-backend-domain>
+VITE_SUPABASE_URL=<project-url>
+VITE_SUPABASE_ANON_KEY=<publishable-or-anon-key>
+```
+
+Railway commands:
+
+```bash
+# Web service
+uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+
+# Worker service
+celery -A worker.celery_app worker --loglevel=INFO
+```
+
+Vercel command:
+
+```bash
+cd frontend && npm ci && npm run build
+```
+
+Production smoke checks:
+
+```bash
+curl https://<backend-domain>/health
+curl https://<backend-domain>/health/details
+```
+
+## Operations
+
+Inspect stale jobs:
+
+```bash
+cd backend
+python scripts/inspect_jobs.py 30
+```
+
+Mark stale jobs failed:
+
+```bash
+cd backend
+python scripts/fail_stale_jobs.py 30
+```
+
+Clean up storage files for soft-deleted contracts older than 30 days:
+
+```bash
+cd backend
+python scripts/cleanup_deleted_storage.py 30
+```
+
+Run authenticated browser E2E tests when local services are running:
+
+```bash
+cd frontend
+E2E_EMAIL=<email> E2E_PASSWORD=<password> E2E_PDF_PATH=../NDA.pdf npm run test:e2e
+```

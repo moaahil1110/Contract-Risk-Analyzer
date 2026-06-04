@@ -21,6 +21,17 @@ def test_detects_nda_contract():
     assert detection["contract_type_confidence"] >= 0.55
 
 
+def test_employee_nda_keeps_nda_type():
+    detection = detect_contract_type([
+        "NON-DISCLOSURE AGREEMENT. This Non-Disclosure Agreement is between an Employer and an Employee.",
+        "The Employee receives Confidential Information because of the Employment and must protect trade secrets.",
+        "The Employer may terminate employment, but the core obligation is confidentiality.",
+    ])
+
+    assert detection["detected_contract_type"] == "nda"
+    assert detection["contract_type_confidence"] >= 0.55
+
+
 def test_low_confidence_detection_falls_back_to_selected_type():
     metadata = resolve_contract_type(
         "vendor",

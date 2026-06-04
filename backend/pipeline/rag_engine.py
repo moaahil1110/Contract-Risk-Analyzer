@@ -7,11 +7,21 @@ Uses local ChromaDB persisted under backend/chroma_db by default.
 import os
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 from pathlib import Path
 
 import chromadb
 from chromadb.config import Settings
+
+from core.embedding_config import (
+    apply_embedding_offline_env,
+    embedding_model_source,
+    embedding_offline_enabled,
+    validate_embedding_config,
+)
+
+apply_embedding_offline_env()
+
 from sentence_transformers import SentenceTransformer
 
 from pipeline.benchmark_schema import (
@@ -27,8 +37,10 @@ logger = logging.getLogger(__name__)
 # Configuration
 DEFAULT_CHROMA_PERSIST_PATH = Path(__file__).resolve().parent.parent / "chroma_db"
 CHROMA_PERSIST_PATH = os.getenv("CHROMA_PERSIST_PATH", str(DEFAULT_CHROMA_PERSIST_PATH))
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+EMBEDDING_MODEL = embedding_model_source()
 COLLECTION_NAME = "contract_benchmarks"
+RAG_MIN_CITATION_SIMILARITY = float(os.getenv("RAG_MIN_CITATION_SIMILARITY", "0.70"))
+RAG_CLAUSE_TYPE_CONFIDENCE_THRESHOLD = float(os.getenv("RAG_CLAUSE_TYPE_CONFIDENCE_THRESHOLD", "0.45"))
 
 # Global instances (initialized on first use)
 _chroma_client: Optional[chromadb.Client] = None
@@ -40,8 +52,20 @@ def get_embedding_model() -> SentenceTransformer:
     """Get or initialize the sentence-transformers embedding model."""
     global _embedding_model
     if _embedding_model is None:
+        validate_embedding_config()
         logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
-        _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+        try:
+            _embedding_model = SentenceTransformer(
+                EMBEDDING_MODEL,
+                local_files_only=embedding_offline_enabled(),
+            )
+        except Exception as exc:
+            if embedding_offline_enabled():
+                raise RuntimeError(
+                    "Embedding model is not available locally while EMBEDDING_OFFLINE=true. "
+                    "Set EMBEDDING_MODEL_PATH to a bundled model directory or pre-cache the model."
+                ) from exc
+            raise
         logger.info("Embedding model loaded successfully")
     return _embedding_model
 
@@ -192,7 +216,53 @@ def build_benchmark_store(benchmark_directory: Optional[str] = None) -> Dict[str
     return result
 
 
-def _format_query_results(results: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _citation_metadata(
+    benchmark: Dict[str, Any],
+    *,
+    expected_contract_type: str,
+    expected_clause_type: Optional[str],
+    clause_type_confident: bool,
+    retrieval_scope: str,
+) -> Dict[str, Any]:
+    if retrieval_scope == "broad":
+        return {
+            "retrieval_scope": retrieval_scope,
+            "citation_eligible": False,
+            "relevance_reason": "broad_fallback_diagnostic_only",
+        }
+    if benchmark.get("contract_type") != expected_contract_type:
+        return {
+            "retrieval_scope": retrieval_scope,
+            "citation_eligible": False,
+            "relevance_reason": "contract_type_mismatch",
+        }
+    if float(benchmark.get("similarity") or 0) < RAG_MIN_CITATION_SIMILARITY:
+        return {
+            "retrieval_scope": retrieval_scope,
+            "citation_eligible": False,
+            "relevance_reason": "below_similarity_threshold",
+        }
+    if clause_type_confident and benchmark.get("clause_type") != expected_clause_type:
+        return {
+            "retrieval_scope": retrieval_scope,
+            "citation_eligible": False,
+            "relevance_reason": "clause_type_mismatch",
+        }
+    return {
+        "retrieval_scope": retrieval_scope,
+        "citation_eligible": True,
+        "relevance_reason": "eligible",
+    }
+
+
+def _format_query_results(
+    results: Dict[str, Any],
+    *,
+    expected_contract_type: str = "",
+    expected_clause_type: Optional[str] = None,
+    clause_type_confident: bool = False,
+    retrieval_scope: str = "broad",
+) -> List[Dict[str, Any]]:
     benchmarks = []
     if results and results["metadatas"] and results["metadatas"][0]:
         ids = results.get("ids", [[]])[0]
@@ -205,7 +275,7 @@ def _format_query_results(results: Dict[str, Any]) -> List[Dict[str, Any]]:
                     tags = json.loads(tags)
                 except json.JSONDecodeError:
                     tags = [tags] if tags else []
-            benchmarks.append({
+            benchmark = {
                 "id": str(benchmark_id),
                 "benchmark_id": str(metadata.get("benchmark_id") or benchmark_id),
                 "text": str(metadata.get("text", "")),
@@ -225,11 +295,60 @@ def _format_query_results(results: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "jurisdiction": str(metadata.get("jurisdiction", "")),
                 "tags": tags,
                 "similarity": round(similarity, 4),
-            })
+            }
+            benchmark.update(_citation_metadata(
+                benchmark,
+                expected_contract_type=expected_contract_type,
+                expected_clause_type=expected_clause_type,
+                clause_type_confident=clause_type_confident,
+                retrieval_scope=retrieval_scope,
+            ))
+            benchmarks.append(benchmark)
     return benchmarks
 
 
-def retrieve_benchmarks(clause_text: str, k: int = 3, contract_type: Optional[str] = None) -> List[Dict[str, Any]]:
+def _query_collection(
+    collection: chromadb.Collection,
+    query_embedding: List[float],
+    *,
+    k: int,
+    contract_type: Optional[str] = None,
+    clause_type: Optional[str] = None,
+) -> Dict[str, Any]:
+    where = None
+    if contract_type and clause_type:
+        where = {"$and": [{"contract_type": contract_type}, {"clause_type": clause_type}]}
+    elif contract_type:
+        where = {"contract_type": contract_type}
+
+    kwargs = {
+        "query_embeddings": [query_embedding],
+        "n_results": k,
+        "include": ["metadatas", "distances"],
+    }
+    if where:
+        kwargs["where"] = where
+    return collection.query(**kwargs)
+
+
+def _merge_results(existing: List[Dict[str, Any]], new_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    seen: Set[str] = {item.get("benchmark_id") or item.get("id") for item in existing}
+    merged = list(existing)
+    for item in new_items:
+        item_id = item.get("benchmark_id") or item.get("id")
+        if item_id not in seen:
+            merged.append(item)
+            seen.add(item_id)
+    return merged
+
+
+def retrieve_benchmarks(
+    clause_text: str,
+    k: int = 3,
+    contract_type: Optional[str] = None,
+    clause_type: Optional[str] = None,
+    clause_type_confidence: float = 0.0,
+) -> List[Dict[str, Any]]:
     """
     Retrieve top-k similar benchmarks for a given clause.
     
@@ -237,6 +356,8 @@ def retrieve_benchmarks(clause_text: str, k: int = 3, contract_type: Optional[st
         clause_text: The clause text to search against
         k: Number of similar benchmarks to retrieve (default: 3)
         contract_type: Optional contract type filter (nda, employment, vendor)
+        clause_type: Optional predicted clause type for first-pass filtered retrieval
+        clause_type_confidence: Confidence for clause_type; >= 0.45 enables clause-type citations
     
     Returns:
         List of benchmark dicts with text, risk_notes, standard_version, and similarity score
@@ -248,38 +369,70 @@ def retrieve_benchmarks(clause_text: str, k: int = 3, contract_type: Optional[st
     
     normalized_type = (contract_type or "").lower()
     should_filter = normalized_type in {"nda", "employment", "vendor"}
+    normalized_clause_type = (clause_type or "").lower().strip() or None
+    clause_type_confident = bool(
+        normalized_clause_type and clause_type_confidence >= RAG_CLAUSE_TYPE_CONFIDENCE_THRESHOLD
+    )
+    collected: List[Dict[str, Any]] = []
+
+    if should_filter and clause_type_confident:
+        try:
+            typed_results = _query_collection(
+                collection,
+                query_embedding,
+                k=k,
+                contract_type=normalized_type,
+                clause_type=normalized_clause_type,
+            )
+            typed_benchmarks = _format_query_results(
+                typed_results,
+                expected_contract_type=normalized_type,
+                expected_clause_type=normalized_clause_type,
+                clause_type_confident=clause_type_confident,
+                retrieval_scope="contract_type_clause_type",
+            )
+            collected = _merge_results(collected, typed_benchmarks)
+            if sum(1 for item in collected if item.get("citation_eligible")) >= k:
+                logger.info("Retrieved %s clause-type eligible benchmarks", k)
+                return collected[:k]
+        except Exception as e:
+            logger.warning("Clause-type retrieval failed for %s/%s: %s", normalized_type, normalized_clause_type, e)
 
     if should_filter:
         try:
-            filtered_results = collection.query(
-                query_embeddings=[query_embedding],
-                n_results=k,
-                where={"contract_type": normalized_type},
-                include=["metadatas", "distances"],
+            filtered_results = _query_collection(
+                collection,
+                query_embedding,
+                k=max(k, k * 2),
+                contract_type=normalized_type,
             )
-            benchmarks = _format_query_results(filtered_results)
-            if len(benchmarks) >= k:
-                logger.info(f"Retrieved {len(benchmarks)} {normalized_type} benchmarks for clause")
-                return benchmarks
-            logger.info(
-                "Filtered retrieval returned %s/%s benchmarks for %s; falling back to broad retrieval",
-                len(benchmarks),
-                k,
-                normalized_type,
+            benchmarks = _format_query_results(
+                filtered_results,
+                expected_contract_type=normalized_type,
+                expected_clause_type=normalized_clause_type,
+                clause_type_confident=clause_type_confident,
+                retrieval_scope="contract_type",
             )
+            collected = _merge_results(collected, benchmarks)
+            if len(collected) >= k:
+                logger.info("Retrieved %s %s benchmarks for clause", len(collected), normalized_type)
+                return collected[:max(k, min(len(collected), k * 2))]
         except Exception as e:
             logger.warning(f"Filtered retrieval failed for {normalized_type}: {e}")
     
     # Broad fallback query.
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=k,
-        include=["metadatas", "distances"],
+    results = _query_collection(collection, query_embedding, k=k)
+    benchmarks = _format_query_results(
+        results,
+        expected_contract_type=normalized_type,
+        expected_clause_type=normalized_clause_type,
+        clause_type_confident=clause_type_confident,
+        retrieval_scope="broad",
     )
-    benchmarks = _format_query_results(results)
+    collected = _merge_results(collected, benchmarks)
     
-    logger.info(f"Retrieved {len(benchmarks)} benchmarks for clause")
-    return benchmarks
+    logger.info(f"Retrieved {len(collected)} benchmarks for clause")
+    return collected[:max(k, min(len(collected), k * 2))]
 
 
 def get_collection_stats() -> Dict[str, Any]:
@@ -290,6 +443,8 @@ def get_collection_stats() -> Dict[str, Any]:
         "total_benchmarks": collection.count(),
         "persist_path": CHROMA_PERSIST_PATH,
         "embedding_model": EMBEDDING_MODEL,
+        "embedding_offline": embedding_offline_enabled(),
+        "embedding_model_source": EMBEDDING_MODEL,
     }
 
 

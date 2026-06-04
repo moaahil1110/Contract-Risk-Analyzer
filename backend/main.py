@@ -12,7 +12,8 @@ from contextlib import asynccontextmanager
 
 from api.routes import upload, analyse, history, export
 from api.middleware.auth import validate_security_config_at_startup, DEV_MODE
-from pipeline.rag_engine import init_engine
+from pipeline.rag_engine import get_collection_stats, init_engine
+from services.job_queue import get_queue_health
 
 
 def _get_cors_origins() -> list:
@@ -90,6 +91,36 @@ app.include_router(export.router, prefix="/api/v1", tags=["export"])
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "contract-risk-analyser"}
+
+
+def _check_weasyprint_health() -> dict:
+    try:
+        from weasyprint import HTML
+        pdf = HTML(string="<html><body>Health check</body></html>").write_pdf()
+        return {"usable": True, "pdf_bytes": len(pdf)}
+    except Exception as exc:
+        return {"usable": False, "error": str(exc)}
+
+@app.get("/health/details")
+async def detailed_health_check():
+    """Detailed diagnostics for deployment smoke checks."""
+    rag = {"loaded": False}
+    try:
+        rag = {"loaded": True, **get_collection_stats()}
+    except Exception as exc:
+        rag = {"loaded": False, "error": str(exc)}
+
+    queue = get_queue_health()
+    weasyprint = _check_weasyprint_health()
+    healthy = bool(rag.get("loaded") and queue.get("reachable") and (DEV_MODE or weasyprint.get("usable")))
+    return {
+        "status": "healthy" if healthy else "degraded",
+        "service": "contract-risk-analyser",
+        "dev_mode": DEV_MODE,
+        "rag": rag,
+        "queue": queue,
+        "weasyprint": weasyprint,
+    }
 
 
 if __name__ == "__main__":

@@ -733,9 +733,9 @@ railway init
 railway up
 
 # Set environment variables in Railway dashboard:
-ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=<provider-api-key>
 SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJ...
+SUPABASE_SERVICE_KEY=<server-only-service-role-key>
 CHROMA_PERSIST_PATH=/app/chroma_db
 ```
 

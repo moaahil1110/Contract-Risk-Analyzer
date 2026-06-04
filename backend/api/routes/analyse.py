@@ -8,10 +8,11 @@ import logging
 import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 
 from api.routes.upload import contract_store, _can_persist_user_to_supabase
 from api.middleware.auth import require_user, DEV_MODE
+from core.rate_limit import rate_limit
 from core.status import CONTRACT_STATUS_COMPLETE, CONTRACT_STATUS_FAILED, CONTRACT_STATUS_QUEUED
 from db.queries import (
     create_analysis_job,
@@ -23,7 +24,7 @@ from db.queries import (
     update_contract_progress,
 )
 from db.supabase_client import is_supabase_configured
-from services.analysis_pipeline import detect_contract_type, resolve_contract_type
+from services.analysis_pipeline import detect_contract_type, resolve_contract_type, _provider_exhaustion_warning
 from services.job_queue import create_local_job, enqueue_contract_analysis, get_local_active_job
 
 logging.basicConfig(level=logging.INFO)
@@ -79,6 +80,7 @@ def _check_contract_ownership(contract_id: str, user_id: str) -> Optional[Dict[s
 @router.post("/analyse/{contract_id}")
 async def start_analysis(
     contract_id: str,
+    request: Request,
     user: Dict[str, Any] = Depends(require_user),
 ):
     """
@@ -87,6 +89,7 @@ async def start_analysis(
     Requires authentication and ownership of the contract.
     """
     user_id = user.get("id")
+    rate_limit(request, user_id, "ANALYSE", default_count=20, default_window=3600)
     _require_supabase_persistable_user(user_id)
     record = None
 
@@ -176,6 +179,7 @@ async def start_analysis(
 @router.post("/analyse/{contract_id}/rerun")
 async def rerun_analysis(
     contract_id: str,
+    request: Request,
     user: Dict[str, Any] = Depends(require_user),
 ):
     """
@@ -186,6 +190,7 @@ async def rerun_analysis(
     Returns the same queue metadata shape as POST /analyse/{contract_id}.
     """
     user_id = user.get("id")
+    rate_limit(request, user_id, "RERUN", default_count=10, default_window=3600)
     _require_supabase_persistable_user(user_id)
     record = None
     # Verify ownership via database first
@@ -315,6 +320,8 @@ async def get_analysis(
                     "unknown_count": db_contract.get("unknown_risk_count", 0),
                     "failed_clause_count": db_contract.get("failed_clause_count", 0),
                     "scored_clause_count": db_contract.get("scored_clause_count", 0),
+                    "top_level_clause_count": db_contract.get("top_level_clause_count") or db_contract.get("total_clauses", 0),
+                    "parsed_section_count": db_contract.get("parsed_section_count") or db_contract.get("total_clauses", 0),
                 }
 
                 clauses = []
@@ -339,7 +346,21 @@ async def get_analysis(
                         "risk_rule_applied": clause.get("risk_rule_applied", ""),
                         "evidence_summary": clause.get("evidence_summary", ""),
                         "benchmark_alignment": clause.get("benchmark_alignment", "none"),
+                        "predicted_clause_type": clause.get("predicted_clause_type"),
+                        "clause_type_confidence": clause.get("clause_type_confidence", 0),
+                        "clause_type_matched_terms": clause.get("clause_type_matched_terms", []),
+                        "retrieval_quality": clause.get("retrieval_quality", "none"),
+                        "eligible_benchmark_count": clause.get("eligible_benchmark_count", 0),
+                        "citation_suppressed": clause.get("citation_suppressed", False),
+                        "clause_number": clause.get("clause_number"),
+                        "parent_clause_number": clause.get("parent_clause_number"),
+                        "clause_level": clause.get("clause_level", 1),
+                        "section_type": clause.get("section_type", "clause"),
+                        "is_scored": clause.get("is_scored", True),
+                        "subclauses": clause.get("subclauses", []),
+                        "parsed_section_count": clause.get("parsed_section_count", 1),
                     })
+                warning = _provider_exhaustion_warning(clauses)
 
                 return {
                     "contract_id": contract_id,
@@ -354,8 +375,11 @@ async def get_analysis(
                         != (db_contract.get("detected_contract_type") or db_contract.get("contract_type"))
                     ),
                     "health": health,
+                    "warning": warning,
                     "clauses": clauses,
                     "total_clauses": len(clauses),
+                    "top_level_clause_count": health.get("top_level_clause_count") or len(clauses),
+                    "parsed_section_count": health.get("parsed_section_count") or len(clauses),
                 }
             if db_contract:
                 active_job = await get_active_analysis_job_for_contract(contract_id)
@@ -387,8 +411,11 @@ async def get_analysis(
             "contract_type_confidence": record.get("contract_type_confidence", 0),
             "contract_type_conflict": record.get("contract_type_conflict", False),
             "health": result["health"],
+            "warning": record.get("warning") or _provider_exhaustion_warning(result["clauses"]),
             "clauses": result["clauses"],
             "total_clauses": len(result["clauses"]),
+            "top_level_clause_count": result["health"].get("top_level_clause_count") if result.get("health") else len(result["clauses"]),
+            "parsed_section_count": result["health"].get("parsed_section_count") if result.get("health") else len(result["clauses"]),
         }
 
     response = _progress_response(contract_id, record, get_local_active_job(contract_id))
@@ -487,6 +514,19 @@ async def get_clause_detail(
                     "risk_rule_applied": clause.get("risk_rule_applied", ""),
                     "evidence_summary": clause.get("evidence_summary", ""),
                     "benchmark_alignment": clause.get("benchmark_alignment", "none"),
+                    "predicted_clause_type": clause.get("predicted_clause_type"),
+                    "clause_type_confidence": clause.get("clause_type_confidence", 0),
+                    "clause_type_matched_terms": clause.get("clause_type_matched_terms", []),
+                    "retrieval_quality": clause.get("retrieval_quality", "none"),
+                    "eligible_benchmark_count": clause.get("eligible_benchmark_count", 0),
+                    "citation_suppressed": clause.get("citation_suppressed", False),
+                    "clause_number": clause.get("clause_number"),
+                    "parent_clause_number": clause.get("parent_clause_number"),
+                    "clause_level": clause.get("clause_level", 1),
+                    "section_type": clause.get("section_type", "clause"),
+                    "is_scored": clause.get("is_scored", True),
+                    "subclauses": clause.get("subclauses", []),
+                    "parsed_section_count": clause.get("parsed_section_count", 1),
                 }
         except Exception as e:
             logger.error(f"Failed to get clause from Supabase: {e}")

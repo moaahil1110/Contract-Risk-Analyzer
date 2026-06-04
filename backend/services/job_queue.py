@@ -5,6 +5,7 @@ import uuid
 from typing import Any, Dict
 
 from dotenv import load_dotenv
+from redis import Redis
 
 try:
     from celery import Celery
@@ -101,3 +102,25 @@ def get_local_active_job(contract_id: str) -> Dict[str, Any] | None:
     if job and job.get("status") in ACTIVE_JOB_STATUSES:
         return job
     return None
+
+
+def get_queue_health() -> Dict[str, Any]:
+    try:
+        client = Redis.from_url(REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
+        client.ping()
+        return {
+            "reachable": True,
+            "broker_url": REDIS_URL,
+            "worker_pool": CELERY_WORKER_POOL,
+            "worker_concurrency": CELERY_WORKER_CONCURRENCY,
+            "task_always_eager": CELERY_TASK_ALWAYS_EAGER,
+        }
+    except Exception as exc:
+        return {
+            "reachable": False,
+            "broker_url": REDIS_URL,
+            "worker_pool": CELERY_WORKER_POOL,
+            "worker_concurrency": CELERY_WORKER_CONCURRENCY,
+            "task_always_eager": CELERY_TASK_ALWAYS_EAGER,
+            "error": str(exc),
+        }

@@ -8,7 +8,7 @@ def test_benchmark_dataset_has_required_schema_and_balance():
     errors, summary = validate_benchmarks(benchmarks)
 
     assert errors == []
-    assert summary["total"] == 90
+    assert summary["total"] == 180
     assert summary["metadata_complete"] is True
 
     counts = defaultdict(Counter)
@@ -16,9 +16,45 @@ def test_benchmark_dataset_has_required_schema_and_balance():
         counts[benchmark["contract_type"]][benchmark["risk_level"]] += 1
 
     for contract_type in ["nda", "employment", "vendor"]:
-        assert counts[contract_type]["high"] == 10
-        assert counts[contract_type]["medium"] == 10
-        assert counts[contract_type]["low"] == 10
+        assert counts[contract_type]["high"] == 20
+        assert counts[contract_type]["medium"] == 20
+        assert counts[contract_type]["low"] == 20
+        assert sum(counts[contract_type].values()) == 60
+
+
+def test_benchmark_dataset_includes_precision_clause_types():
+    benchmarks = load_benchmarks()
+    clause_types = defaultdict(set)
+    for benchmark in benchmarks:
+        clause_types[benchmark["contract_type"]].add(benchmark["clause_type"])
+
+    assert {
+        "commencement",
+        "job_duties",
+        "work_hours",
+        "leave",
+        "company_policies",
+    }.issubset(clause_types["employment"])
+    assert {
+        "authorized_recipients",
+        "compelled_disclosure",
+        "no_license",
+        "standard_of_care",
+        "survival",
+        "non_compete",
+        "non_solicitation",
+        "business_opportunity",
+        "ip_assignment",
+        "fees_costs",
+        "notices",
+    }.issubset(clause_types["nda"])
+    assert {
+        "change_orders",
+        "subcontracting",
+        "audit_rights",
+        "confidentiality",
+        "transition_assistance",
+    }.issubset(clause_types["vendor"])
 
 
 def test_embedding_text_contains_rag_evidence_fields():

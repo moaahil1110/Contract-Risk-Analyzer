@@ -70,3 +70,26 @@ async def load_contract_file(storage_path: str) -> bytes:
         return path.read_bytes()
 
     raise FileNotFoundError(f"Contract file not found: {storage_path}")
+
+
+async def delete_contract_file(storage_path: str) -> bool:
+    if not storage_path:
+        return False
+
+    if storage_path.startswith("local://"):
+        path = Path(storage_path.removeprefix("local://"))
+        if path.exists():
+            path.unlink()
+        return True
+
+    if is_supabase_configured():
+        client = get_supabase_client()
+        if not client:
+            raise RuntimeError("Supabase client is not available")
+        client.storage.from_(STORAGE_BUCKET).remove([storage_path])
+        return True
+
+    path = Path(storage_path)
+    if path.exists():
+        path.unlink()
+    return True

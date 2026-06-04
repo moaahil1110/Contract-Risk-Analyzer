@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Install system dependencies including Tesseract OCR
+# Install system dependencies including Tesseract OCR and WeasyPrint
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-eng \
@@ -12,6 +12,12 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -21,11 +27,22 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+ARG DOWNLOAD_EMBEDDING_MODEL=true
+ARG EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+ENV EMBEDDING_MODEL_PATH=/app/models/all-MiniLM-L6-v2
+RUN if [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
+      python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('$EMBEDDING_MODEL_NAME').save('$EMBEDDING_MODEL_PATH')" ; \
+    fi
+
 # Copy application code
 COPY . .
 
 # Create directory for ChromaDB persistence
 RUN mkdir -p /app/chroma_db
+
+ENV EMBEDDING_OFFLINE=true
+ENV TRANSFORMERS_OFFLINE=1
+ENV HF_HUB_OFFLINE=1
 
 # Expose port
 EXPOSE 8000

@@ -10,8 +10,6 @@ pytesseract==0.3.10
 
 # LLM clients
 ollama==0.1.9
-google-generativeai==0.6.0
-anthropic==0.28.0
 
 # Embeddings and RAG
 sentence-transformers==3.0.0

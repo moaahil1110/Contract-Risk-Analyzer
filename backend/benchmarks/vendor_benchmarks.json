@@ -598,5 +598,605 @@
       "vendor-tools",
       "overbroad"
     ]
+  },
+  {
+    "benchmark_id": "vendor_031",
+    "contract_type": "vendor",
+    "clause_type": "change_orders",
+    "risk_level": "low",
+    "clause_text": "Changes to scope, fees, timeline, or deliverables require a written change order signed by both parties.",
+    "risk_rule": "Change-control clauses should require written agreement for material changes.",
+    "why_risky": "This prevents informal scope creep and pricing disputes.",
+    "safe_version": "Require written change orders for changes to scope, fees, schedule, or deliverables.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "change-orders",
+      "scope",
+      "fees"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_032",
+    "contract_type": "vendor",
+    "clause_type": "change_orders",
+    "risk_level": "medium",
+    "clause_text": "Customer may request reasonable changes, and the parties will work in good faith to adjust fees and schedule.",
+    "risk_rule": "Change requests should include a clear adjustment process.",
+    "why_risky": "Good-faith language helps but may not prevent disputes over price or timing.",
+    "safe_version": "Add that changes are not binding until documented with fee and schedule adjustments.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "change-orders",
+      "good-faith",
+      "adjustment"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_033",
+    "contract_type": "vendor",
+    "clause_type": "change_orders",
+    "risk_level": "high",
+    "clause_text": "Customer may require any change to services or deliverables without additional fees or schedule relief.",
+    "risk_rule": "Unilateral uncompensated change rights create severe scope and margin risk.",
+    "why_risky": "Vendor may be forced to perform extra work for the original price.",
+    "safe_version": "Require mutual written approval and equitable adjustment for scope, fee, and schedule changes.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "change-orders",
+      "unilateral",
+      "scope-creep"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_034",
+    "contract_type": "vendor",
+    "clause_type": "subcontracting",
+    "risk_level": "low",
+    "clause_text": "Vendor may use qualified subcontractors but remains responsible for their work and confidentiality obligations.",
+    "risk_rule": "Subcontracting should preserve vendor responsibility and downstream obligations.",
+    "why_risky": "This allows delivery flexibility while protecting customer interests.",
+    "safe_version": "Allow qualified subcontractors subject to confidentiality, security, and vendor responsibility.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "subcontracting",
+      "responsibility",
+      "confidentiality"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_035",
+    "contract_type": "vendor",
+    "clause_type": "subcontracting",
+    "risk_level": "medium",
+    "clause_text": "Vendor may subcontract portions of the services after notifying customer.",
+    "risk_rule": "Subcontracting notice should be paired with responsibility and compliance requirements.",
+    "why_risky": "Notice alone may not protect quality or data handling.",
+    "safe_version": "Require vendor responsibility, confidentiality, security controls, and approval for sensitive work.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "subcontracting",
+      "notice",
+      "security"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_036",
+    "contract_type": "vendor",
+    "clause_type": "subcontracting",
+    "risk_level": "high",
+    "clause_text": "Vendor may assign or subcontract all services to any third party and has no responsibility for subcontractor acts or omissions.",
+    "risk_rule": "Subcontracting should not eliminate responsibility for service delivery.",
+    "why_risky": "Customer loses control and recourse if work is shifted downstream.",
+    "safe_version": "Keep vendor liable for subcontractors and require approval for material or sensitive subcontracting.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "subcontracting",
+      "no-responsibility",
+      "assignment"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_037",
+    "contract_type": "vendor",
+    "clause_type": "audit_rights",
+    "risk_level": "low",
+    "clause_text": "Customer may audit relevant records once annually on reasonable notice to verify fees, compliance, and service obligations.",
+    "risk_rule": "Audit rights should be limited, noticed, and tied to relevant obligations.",
+    "why_risky": "This balances oversight with vendor operational burden.",
+    "safe_version": "Limit audits to relevant records, reasonable notice, business hours, confidentiality, and frequency limits.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "audit",
+      "records",
+      "notice"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_038",
+    "contract_type": "vendor",
+    "clause_type": "audit_rights",
+    "risk_level": "medium",
+    "clause_text": "Customer may audit vendor's compliance with the agreement on reasonable notice.",
+    "risk_rule": "Audit rights should specify scope, frequency, and confidentiality.",
+    "why_risky": "General audit rights can be workable but may be too broad.",
+    "safe_version": "Define audit scope, frequency, notice, confidentiality, and cost allocation.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "audit",
+      "compliance",
+      "scope"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_039",
+    "contract_type": "vendor",
+    "clause_type": "audit_rights",
+    "risk_level": "high",
+    "clause_text": "Customer may conduct unlimited audits of all vendor books, systems, personnel, and facilities at any time without notice.",
+    "risk_rule": "Unlimited audit rights can disrupt operations and expose unrelated confidential information.",
+    "why_risky": "The audit burden and privacy impact are excessive.",
+    "safe_version": "Restrict audits to relevant records, reasonable frequency, advance notice, and confidentiality safeguards.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "audit",
+      "unlimited",
+      "systems"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_040",
+    "contract_type": "vendor",
+    "clause_type": "confidentiality",
+    "risk_level": "low",
+    "clause_text": "Each party will protect the other's confidential information using reasonable care and use it only to perform or receive the services.",
+    "risk_rule": "Vendor confidentiality should be mutual, use-limited, and safeguard-based.",
+    "why_risky": "This protects both parties' information in a balanced way.",
+    "safe_version": "Use mutual confidentiality with reasonable safeguards, use limits, exceptions, and return/destruction duties.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "confidentiality",
+      "mutual",
+      "reasonable-care"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_041",
+    "contract_type": "vendor",
+    "clause_type": "confidentiality",
+    "risk_level": "medium",
+    "clause_text": "Vendor will keep customer information confidential during the term of the agreement.",
+    "risk_rule": "Confidentiality should include survival, exceptions, safeguards, and permitted recipients.",
+    "why_risky": "Basic confidentiality may be incomplete for sensitive data.",
+    "safe_version": "Add survival, standard exceptions, authorized recipients, safeguards, and return/destruction obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "confidentiality",
+      "customer-data",
+      "survival"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_042",
+    "contract_type": "vendor",
+    "clause_type": "confidentiality",
+    "risk_level": "high",
+    "clause_text": "Vendor may use customer confidential information for its own business purposes, analytics, training, and product development without restriction.",
+    "risk_rule": "Confidential information should not be repurposed beyond service delivery without consent.",
+    "why_risky": "Customer data may be exploited outside the contracted services.",
+    "safe_version": "Limit use to service performance unless customer gives express written consent for specific secondary uses.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "confidentiality",
+      "secondary-use",
+      "customer-data"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_043",
+    "contract_type": "vendor",
+    "clause_type": "insurance",
+    "risk_level": "low",
+    "clause_text": "Vendor will maintain commercially reasonable insurance coverage appropriate for the services and provide certificates on request.",
+    "risk_rule": "Insurance clauses should match service risk and require evidence of coverage.",
+    "why_risky": "Appropriate insurance supports recovery for covered losses.",
+    "safe_version": "Specify required policy types, minimum limits, certificates, and notice of cancellation where available.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "insurance",
+      "coverage",
+      "certificate"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_044",
+    "contract_type": "vendor",
+    "clause_type": "insurance",
+    "risk_level": "medium",
+    "clause_text": "Vendor will maintain insurance coverage it considers appropriate for its business.",
+    "risk_rule": "Insurance obligations should specify required coverage and limits.",
+    "why_risky": "Vendor-only discretion may leave customer underprotected.",
+    "safe_version": "State required insurance types and minimum limits based on service risk.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "insurance",
+      "limits",
+      "business-risk"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_045",
+    "contract_type": "vendor",
+    "clause_type": "insurance",
+    "risk_level": "high",
+    "clause_text": "Vendor has no obligation to maintain insurance or provide evidence of coverage for service-related risks.",
+    "risk_rule": "Absence of insurance can leave service failures or claims underfunded.",
+    "why_risky": "Customer may have no practical recovery for covered operational risks.",
+    "safe_version": "Require appropriate commercial general liability, professional liability, cyber, or workers coverage as relevant.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "insurance",
+      "no-coverage",
+      "risk-transfer"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_046",
+    "contract_type": "vendor",
+    "clause_type": "dispute_resolution",
+    "risk_level": "low",
+    "clause_text": "The parties will first escalate disputes to senior representatives before pursuing court or agreed arbitration, without limiting urgent injunctive relief.",
+    "risk_rule": "Dispute clauses should provide practical escalation while preserving urgent remedies.",
+    "why_risky": "Escalation can resolve issues without blocking necessary relief.",
+    "safe_version": "Include executive escalation, venue or arbitration rules, and emergency relief carveouts.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "dispute-resolution",
+      "escalation",
+      "injunctive-relief"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_047",
+    "contract_type": "vendor",
+    "clause_type": "dispute_resolution",
+    "risk_level": "medium",
+    "clause_text": "All disputes will be resolved by binding arbitration in the customer's home jurisdiction.",
+    "risk_rule": "Forum and arbitration terms should be fair and operationally reasonable for both parties.",
+    "why_risky": "One-sided forum selection may increase cost for the other party.",
+    "safe_version": "Use a neutral or mutually reasonable forum and clear arbitration rules.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "dispute-resolution",
+      "arbitration",
+      "forum"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_048",
+    "contract_type": "vendor",
+    "clause_type": "dispute_resolution",
+    "risk_level": "high",
+    "clause_text": "Vendor waives all rights to bring claims, join proceedings, seek injunctive relief, or recover damages against customer.",
+    "risk_rule": "Dispute clauses should not eliminate meaningful remedies or all claims for one party.",
+    "why_risky": "This makes enforcement one-sided and may be unconscionable.",
+    "safe_version": "Preserve each party's right to bring claims, seek urgent relief, and recover permitted remedies.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "dispute-resolution",
+      "claim-waiver",
+      "one-sided"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_049",
+    "contract_type": "vendor",
+    "clause_type": "force_majeure",
+    "risk_level": "low",
+    "clause_text": "Neither party is liable for delay caused by events beyond reasonable control, provided it gives notice and resumes performance promptly.",
+    "risk_rule": "Force majeure should require causation, notice, mitigation, and resumption.",
+    "why_risky": "This protects against genuine uncontrollable events without excusing avoidable delay.",
+    "safe_version": "Require notice, mitigation, affected obligations only, and termination rights for prolonged events.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "force-majeure",
+      "notice",
+      "mitigation"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_050",
+    "contract_type": "vendor",
+    "clause_type": "force_majeure",
+    "risk_level": "medium",
+    "clause_text": "Performance is excused for events beyond a party's reasonable control.",
+    "risk_rule": "Force majeure should specify notice, mitigation, and prolonged-event remedies.",
+    "why_risky": "The basic concept is acceptable but incomplete.",
+    "safe_version": "Add prompt notice, mitigation, partial performance, and termination after a defined prolonged period.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "force-majeure",
+      "delay",
+      "control"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_051",
+    "contract_type": "vendor",
+    "clause_type": "force_majeure",
+    "risk_level": "high",
+    "clause_text": "Vendor is excused from performance for any labor issue, supply problem, financial difficulty, or event making performance inconvenient.",
+    "risk_rule": "Force majeure should not excuse ordinary business hardship or controllable issues.",
+    "why_risky": "The clause may excuse predictable operational problems.",
+    "safe_version": "Limit force majeure to events beyond reasonable control and exclude financial hardship or avoidable supply issues.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "force-majeure",
+      "hardship",
+      "overbroad"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_052",
+    "contract_type": "vendor",
+    "clause_type": "compliance_with_laws",
+    "risk_level": "low",
+    "clause_text": "Each party will comply with laws applicable to its performance under the agreement, including privacy, anti-bribery, and employment laws where relevant.",
+    "risk_rule": "Compliance clauses should allocate each party's legal obligations by role.",
+    "why_risky": "This creates a clear baseline for lawful performance.",
+    "safe_version": "Require each party to comply with laws applicable to its own performance and regulated data/services.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "compliance",
+      "laws",
+      "privacy"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_053",
+    "contract_type": "vendor",
+    "clause_type": "compliance_with_laws",
+    "risk_level": "medium",
+    "clause_text": "Vendor will comply with all laws related to the services.",
+    "risk_rule": "Broad compliance language should be tied to vendor's performance and known service context.",
+    "why_risky": "The obligation may be too broad or unclear without role limits.",
+    "safe_version": "Limit compliance to laws applicable to vendor's performance, personnel, and service delivery.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "compliance",
+      "services",
+      "vendor"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_054",
+    "contract_type": "vendor",
+    "clause_type": "compliance_with_laws",
+    "risk_level": "high",
+    "clause_text": "Vendor is responsible for ensuring customer's entire business and use of the services comply with all laws worldwide.",
+    "risk_rule": "Vendor should not assume responsibility for customer's independent legal compliance.",
+    "why_risky": "This creates unbounded liability outside vendor's control.",
+    "safe_version": "Limit vendor responsibility to its own performance and customer instructions within the service scope.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "compliance",
+      "customer-business",
+      "unbounded"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_055",
+    "contract_type": "vendor",
+    "clause_type": "transition_assistance",
+    "risk_level": "low",
+    "clause_text": "Upon termination, vendor will provide reasonable transition assistance for a limited period at agreed rates to avoid service disruption.",
+    "risk_rule": "Transition assistance should define duration, scope, and fees.",
+    "why_risky": "This supports orderly handover while controlling vendor burden.",
+    "safe_version": "Specify transition period, services, cooperation duties, rates, and data return obligations.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "transition",
+      "handover",
+      "termination"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_056",
+    "contract_type": "vendor",
+    "clause_type": "transition_assistance",
+    "risk_level": "medium",
+    "clause_text": "Vendor will reasonably cooperate with transition after termination.",
+    "risk_rule": "Transition cooperation should define time, deliverables, and compensation.",
+    "why_risky": "General cooperation may be too vague for critical services.",
+    "safe_version": "Define specific transition deliverables, time limits, rates, and customer responsibilities.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "transition",
+      "cooperation",
+      "deliverables"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_057",
+    "contract_type": "vendor",
+    "clause_type": "transition_assistance",
+    "risk_level": "high",
+    "clause_text": "Vendor must provide unlimited transition services after termination at no additional charge until customer is satisfied.",
+    "risk_rule": "Transition duties should not be unlimited or uncompensated.",
+    "why_risky": "Vendor may be forced to work indefinitely without payment.",
+    "safe_version": "Set a fixed transition period, defined scope, and agreed fees for post-termination assistance.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "transition",
+      "unlimited",
+      "unpaid"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_058",
+    "contract_type": "vendor",
+    "clause_type": "taxes_expenses",
+    "risk_level": "low",
+    "clause_text": "Fees exclude applicable taxes, and pre-approved reimbursable expenses will be passed through at cost with supporting receipts.",
+    "risk_rule": "Tax and expense clauses should clearly allocate taxes and require expense approval/documentation.",
+    "why_risky": "This prevents surprise charges while allowing legitimate pass-throughs.",
+    "safe_version": "State tax responsibility, excluded taxes, pre-approval, receipts, and any expense caps.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "taxes",
+      "expenses",
+      "receipts"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_059",
+    "contract_type": "vendor",
+    "clause_type": "taxes_expenses",
+    "risk_level": "medium",
+    "clause_text": "Customer will reimburse reasonable travel and out-of-pocket expenses incurred in providing the services.",
+    "risk_rule": "Expense reimbursement should require pre-approval, documentation, and caps where appropriate.",
+    "why_risky": "Reasonable expenses can still become disputed if controls are missing.",
+    "safe_version": "Require pre-approval, receipts, travel policy compliance, and expense caps if needed.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "expenses",
+      "travel",
+      "reimbursement"
+    ]
+  },
+  {
+    "benchmark_id": "vendor_060",
+    "contract_type": "vendor",
+    "clause_type": "taxes_expenses",
+    "risk_level": "high",
+    "clause_text": "Customer must reimburse all vendor expenses, taxes, overhead, administrative charges, and internal costs without approval or documentation.",
+    "risk_rule": "Expense pass-throughs should not be unlimited or undocumented.",
+    "why_risky": "Customer may face uncapped extra charges beyond agreed fees.",
+    "safe_version": "Limit reimbursable expenses to pre-approved, reasonable, documented out-of-pocket costs and specified taxes.",
+    "source_name": "Curated Contract Risk Benchmark Library v2",
+    "source_type": "curated",
+    "source_url": "local://backend/benchmarks/curated-v2",
+    "source_license_note": "Manually curated educational benchmark; not legal advice and not copied verbatim from proprietary templates.",
+    "jurisdiction": "general/common-law",
+    "tags": [
+      "expenses",
+      "unlimited",
+      "undocumented"
+    ]
   }
 ]

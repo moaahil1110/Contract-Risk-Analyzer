@@ -28,6 +28,19 @@ class Clause(BaseModel):
     risk_rule_applied: Optional[str] = None
     evidence_summary: Optional[str] = None
     benchmark_alignment: Literal["strong", "partial", "weak", "none"] = "none"
+    predicted_clause_type: Optional[str] = None
+    clause_type_confidence: float = 0.0
+    clause_type_matched_terms: List[str] = []
+    retrieval_quality: Literal["strong", "partial", "none"] = "none"
+    eligible_benchmark_count: int = 0
+    citation_suppressed: bool = False
+    clause_number: Optional[str] = None
+    parent_clause_number: Optional[str] = None
+    clause_level: int = 1
+    section_type: str = "clause"
+    is_scored: bool = True
+    subclauses: List[Dict[str, Any]] = []
+    parsed_section_count: int = 1
     created_at: Optional[datetime] = None
 
 
@@ -41,6 +54,8 @@ class HealthScore(BaseModel):
     unknown_count: int = 0
     failed_clause_count: int = 0
     scored_clause_count: int = 0
+    top_level_clause_count: Optional[int] = None
+    parsed_section_count: Optional[int] = None
 
 
 class Contract(BaseModel):

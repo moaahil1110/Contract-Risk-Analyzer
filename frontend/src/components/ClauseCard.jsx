@@ -22,6 +22,14 @@ const ClauseCard = ({ clause }) => {
     benchmark_alignment,
     provider_used,
     retry_count,
+    predicted_clause_type,
+    clause_type_confidence,
+    retrieval_quality,
+    eligible_benchmark_count,
+    citation_suppressed,
+    clause_number,
+    subclauses,
+    parsed_section_count,
   } = clause;
 
   const isFailed = analysis_status === 'failed';
@@ -94,6 +102,26 @@ const ClauseCard = ({ clause }) => {
                 RAG {safeAlignment}
               </span>
             )}
+            {predicted_clause_type && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-indigo-50 text-indigo-700 border-indigo-200">
+                {predicted_clause_type}
+              </span>
+            )}
+            {retrieval_quality && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-50 text-gray-600 border-gray-200">
+                Retrieval {retrieval_quality}
+              </span>
+            )}
+            {clause_number && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-slate-50 text-slate-700 border-slate-200">
+                Clause {clause_number}
+              </span>
+            )}
+            {parsed_section_count > 1 && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-slate-50 text-slate-700 border-slate-200">
+                {parsed_section_count} sections
+              </span>
+            )}
           </div>
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{clause_title}</h3>
         </div>
@@ -141,6 +169,22 @@ const ClauseCard = ({ clause }) => {
             </div>
           </div>
 
+          {subclauses && subclauses.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Nested Sections</h4>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <ul className="space-y-1">
+                  {subclauses.slice(0, 12).map((subclause, index) => (
+                    <li key={`${subclause.clause_number || index}`} className="text-xs text-slate-700">
+                      <span className="font-semibold">{subclause.clause_number}</span>
+                      {subclause.heading ? ` ${subclause.heading}` : ` ${subclause.section_type || 'Subclause'}`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* Key Concerns */}
           {key_concerns && key_concerns.length > 0 && (
             <div>
@@ -179,6 +223,19 @@ const ClauseCard = ({ clause }) => {
                     {cited_benchmark_ids.join(', ')}
                   </p>
                 )}
+                {citation_suppressed && (
+                  <p className="text-xs text-blue-800">
+                    <span className="font-semibold">Benchmark Match: </span>
+                    No strong benchmark match found; weak retrievals are diagnostic only.
+                  </p>
+                )}
+                <p className="text-xs text-blue-800">
+                  <span className="font-semibold">Eligible Benchmarks: </span>
+                  {eligible_benchmark_count || 0}
+                  {predicted_clause_type && (
+                    <span> · Predicted type: {predicted_clause_type} ({Math.round((clause_type_confidence || 0) * 100)}%)</span>
+                  )}
+                </p>
               </div>
             </div>
           )}
@@ -201,8 +258,11 @@ const ClauseCard = ({ clause }) => {
                 {retrieved_benchmarks.slice(0, 3).map((benchmark, index) => (
                   <div key={benchmark.id || index} className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                     <p className="text-xs font-medium text-blue-900">
-                      {benchmark.benchmark_id || benchmark.id || `Benchmark ${index + 1}`} — {benchmark.contract_type || 'unknown'} / {benchmark.clause_type || 'unknown'} / {benchmark.risk_level || 'unknown'} — similarity {benchmark.similarity ?? 'n/a'}
+                      {benchmark.benchmark_id || benchmark.id || `Benchmark ${index + 1}`} — {benchmark.contract_type || 'unknown'} / {benchmark.clause_type || 'unknown'} / {benchmark.risk_level || 'unknown'} — similarity {benchmark.similarity ?? 'n/a'} — eligible {benchmark.citation_eligible ? 'yes' : 'no'}
                     </p>
+                    {benchmark.relevance_reason && (
+                      <p className="text-[11px] text-blue-700 mt-1">Reason: {benchmark.relevance_reason}</p>
+                    )}
                     {(benchmark.risk_rule || benchmark.risk_notes) && (
                       <p className="text-xs text-blue-800 mt-1">{benchmark.risk_rule || benchmark.risk_notes}</p>
                     )}

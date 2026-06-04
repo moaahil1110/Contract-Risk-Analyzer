@@ -6,10 +6,13 @@ import Dashboard from './pages/Dashboard';
 import Results from './pages/Results';
 
 // Protected Route component
+const CI_BYPASS_AUTH = import.meta.env.VITE_CI_BYPASS_AUTH === 'true'
+
 const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(CI_BYPASS_AUTH ? true : null);
 
   useEffect(() => {
+    if (CI_BYPASS_AUTH) return;
     checkAuth();
   }, []);
 

@@ -5,7 +5,7 @@ Week 3: Supabase database operations for contracts and clause analyses
 
 import logging
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 from db.supabase_client import get_supabase_client, is_supabase_configured
@@ -219,7 +219,8 @@ async def update_contract_results(
     contract_id: str,
     health_data: Dict[str, Any],
     risk_counts: Dict[str, int],
-    total_clauses: int
+    total_clauses: int,
+    parsed_section_count: Optional[int] = None,
 ) -> bool:
     """
     Update contract with analysis results and health score.
@@ -251,6 +252,8 @@ async def update_contract_results(
             "health_grade": health_data.get("grade"),
             "health_label": health_data.get("label"),
             "total_clauses": total_clauses,
+            "top_level_clause_count": total_clauses,
+            "parsed_section_count": parsed_section_count or total_clauses,
             "high_risk_count": risk_counts.get("high", 0),
             "medium_risk_count": risk_counts.get("medium", 0),
             "low_risk_count": risk_counts.get("low", 0),
@@ -409,6 +412,64 @@ async def get_analysis_job_by_task_id(celery_task_id: str) -> Optional[Dict[str,
     except Exception as e:
         logger.error(f"Error getting analysis job by task id: {e}")
         return None
+
+
+async def get_stale_analysis_jobs(timeout_minutes: int = 30) -> List[Dict[str, Any]]:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping get_stale_analysis_jobs")
+        return []
+
+    client = get_supabase_client()
+    if not client:
+        return []
+
+    cutoff = (datetime.utcnow() - timedelta(minutes=max(1, timeout_minutes))).isoformat()
+    try:
+        result = (
+            client.table("analysis_jobs")
+            .select("*")
+            .in_("status", list(ACTIVE_JOB_STATUSES))
+            .lt("updated_at", cutoff)
+            .order("updated_at")
+            .execute()
+        )
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting stale analysis jobs: {e}")
+        raise
+
+
+async def mark_stale_analysis_jobs_failed(timeout_minutes: int = 30) -> List[Dict[str, Any]]:
+    stale_jobs = await get_stale_analysis_jobs(timeout_minutes)
+    failed_jobs: List[Dict[str, Any]] = []
+
+    for job in stale_jobs:
+        contract_id = job.get("contract_id")
+        job_id = job.get("id")
+        message = f"Analysis job exceeded {timeout_minutes} minute timeout"
+        if job_id:
+            await update_analysis_job(
+                job_id,
+                "failed",
+                stage="failed",
+                error=message,
+                metadata={
+                    **(job.get("metadata") or {}),
+                    "stale_timeout_minutes": timeout_minutes,
+                    "marked_failed_at": datetime.utcnow().isoformat(),
+                },
+            )
+        if contract_id:
+            await update_contract_progress(
+                contract_id,
+                "failed",
+                100,
+                "Analysis timed out",
+                message,
+            )
+        failed_jobs.append(job)
+
+    return failed_jobs
 
 
 async def get_contract_for_user(contract_id: str, user_id: str) -> Optional[Dict[str, Any]]:
@@ -609,6 +670,30 @@ async def get_contract_with_clauses(contract_id: str) -> Optional[Dict[str, Any]
         return None
 
 
+def _sanitize_ilike_pattern(value: str) -> str:
+    """Escape PostgreSQL LIKE special characters (% and _) for safe ilike."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+async def _get_user_contracts_with_retry(
+    user_id: str,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    contract_type: Optional[str] = None,
+    grade: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Wrapper that retries get_user_contracts once on transient failure."""
+    try:
+        return await _get_user_contracts_once(user_id, search, status, contract_type, grade)
+    except Exception as e:
+        logger.warning(f"Transient Supabase failure on history search, retrying once: {e}")
+        try:
+            return await _get_user_contracts_once(user_id, search, status, contract_type, grade)
+        except Exception as retry_e:
+            logger.error(f"History search retry failed: {retry_e}")
+            raise
+
+
 async def get_user_contracts(
     user_id: str,
     search: Optional[str] = None,
@@ -616,17 +701,18 @@ async def get_user_contracts(
     contract_type: Optional[str] = None,
     grade: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """
-    Get all non-deleted contracts for a user with optional filters.
-    Args:
-        user_id: The user's UUID
-        search: Optional filename substring filter
-        status: Optional status filter
-        contract_type: Optional contract type filter
-        grade: Optional health grade filter
-    Returns:
-        List of contract records
-    """
+    """Get all non-deleted contracts for a user with optional filters. Retries once on transient failure."""
+    return await _get_user_contracts_with_retry(user_id, search, status, contract_type, grade)
+
+
+async def _get_user_contracts_once(
+    user_id: str,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    contract_type: Optional[str] = None,
+    grade: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Get all non-deleted contracts for a user with optional filters (single attempt)."""
     if not is_supabase_configured():
         logger.debug("Supabase not configured, skipping get_user_contracts")
         return []
@@ -648,7 +734,8 @@ async def get_user_contracts(
         if grade:
             query = query.eq("health_grade", grade)
         if search:
-            query = query.ilike("filename", f"%{search}%")
+            safe_search = _sanitize_ilike_pattern(search)
+            query = query.ilike("filename", f"%{safe_search}%")
         result = query.execute()
         return result.data if result.data else []
     except Exception as e:
@@ -684,6 +771,28 @@ async def soft_delete_contract(contract_id: str, user_id: str) -> bool:
     except Exception as e:
         logger.error(f"Error soft deleting contract: {e}")
         return False
+
+
+async def get_deleted_contracts_for_cleanup(retention_days: int = 30) -> List[Dict[str, Any]]:
+    if not is_supabase_configured():
+        logger.debug("Supabase not configured, skipping get_deleted_contracts_for_cleanup")
+        return []
+    client = get_supabase_client()
+    if not client:
+        return []
+    cutoff = (datetime.utcnow() - timedelta(days=max(1, retention_days))).isoformat()
+    try:
+        result = (
+            client.table("contracts")
+            .select("id,user_id,filename,storage_path,deleted_at")
+            .filter("deleted_at", "not.is", "null")
+            .lt("deleted_at", cutoff)
+            .execute()
+        )
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting deleted contracts for cleanup: {e}")
+        raise
 
 
 async def rerun_contract(contract_id: str, user_id: str) -> bool:
@@ -835,6 +944,19 @@ async def save_clause_analysis(
             "risk_rule_applied": clause_data.get("risk_rule_applied", ""),
             "evidence_summary": clause_data.get("evidence_summary", ""),
             "benchmark_alignment": clause_data.get("benchmark_alignment", "none"),
+            "predicted_clause_type": clause_data.get("predicted_clause_type"),
+            "clause_type_confidence": clause_data.get("clause_type_confidence", 0),
+            "clause_type_matched_terms": clause_data.get("clause_type_matched_terms", []),
+            "retrieval_quality": clause_data.get("retrieval_quality", "none"),
+            "eligible_benchmark_count": clause_data.get("eligible_benchmark_count", 0),
+            "citation_suppressed": clause_data.get("citation_suppressed", False),
+            "clause_number": clause_data.get("clause_number"),
+            "parent_clause_number": clause_data.get("parent_clause_number"),
+            "clause_level": clause_data.get("clause_level", 1),
+            "section_type": clause_data.get("section_type", "clause"),
+            "is_scored": clause_data.get("is_scored", True),
+            "subclauses": clause_data.get("subclauses", []),
+            "parsed_section_count": clause_data.get("parsed_section_count", 1),
             "created_at": datetime.utcnow().isoformat(),
         }
         
@@ -905,6 +1027,19 @@ async def save_clause_analyses_batch(
                 "risk_rule_applied": clause.get("risk_rule_applied", ""),
                 "evidence_summary": clause.get("evidence_summary", ""),
                 "benchmark_alignment": clause.get("benchmark_alignment", "none"),
+                "predicted_clause_type": clause.get("predicted_clause_type"),
+                "clause_type_confidence": clause.get("clause_type_confidence", 0),
+                "clause_type_matched_terms": clause.get("clause_type_matched_terms", []),
+                "retrieval_quality": clause.get("retrieval_quality", "none"),
+                "eligible_benchmark_count": clause.get("eligible_benchmark_count", 0),
+                "citation_suppressed": clause.get("citation_suppressed", False),
+                "clause_number": clause.get("clause_number"),
+                "parent_clause_number": clause.get("parent_clause_number"),
+                "clause_level": clause.get("clause_level", 1),
+                "section_type": clause.get("section_type", "clause"),
+                "is_scored": clause.get("is_scored", True),
+                "subclauses": clause.get("subclauses", []),
+                "parsed_section_count": clause.get("parsed_section_count", 1),
                 "created_at": datetime.utcnow().isoformat(),
             })
         

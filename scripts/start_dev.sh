@@ -77,7 +77,13 @@ echo "Worker: started"
 PIDS+=("$!")
 echo "Frontend: http://localhost:$FRONTEND_PORT"
 
-wait -n "${PIDS[@]}"
-exit_code=$?
-echo "A dev process exited. Shutting down the rest."
-exit "$exit_code"
+while true; do
+  for pid in "${PIDS[@]}"; do
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      wait "$pid" || exit_code=$?
+      echo "A dev process exited. Shutting down the rest."
+      exit "${exit_code:-0}"
+    fi
+  done
+  sleep 1
+done

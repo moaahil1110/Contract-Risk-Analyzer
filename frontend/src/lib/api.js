@@ -1,4 +1,5 @@
 // API integration for Contract Risk Analyzer
+import { getSession } from './supabase.js'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const REQUEST_TIMEOUT_MS = 30000
@@ -8,10 +9,11 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_M
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       ...options,
       signal: controller.signal,
     })
+    return response
   } catch (error) {
     if (error.name === 'AbortError') {
       throw new Error('Request timed out. Check that the backend is running and try again.')
@@ -24,7 +26,6 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_M
 
 // Get auth token from Supabase session
 const getAuthHeaders = async () => {
-  const { getSession } = await import('./supabase.js')
   const session = await getSession()
   return session?.access_token
     ? { 'Authorization': `Bearer ${session.access_token}` }

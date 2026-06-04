@@ -1,0 +1,38 @@
+[
+  {
+    "document_id": "ec_sample",
+    "path": "EC.pdf",
+    "expected_contract_type": "employment",
+    "checks": [
+      {"contains": "commencement", "expected_clause_type": "commencement"},
+      {"contains": "duties", "expected_clause_type": "job_duties"},
+      {"contains": "annual leave", "expected_clause_type": "leave"},
+      {"contains": "normal hours", "expected_clause_type": "work_hours"},
+      {"contains": "confidential information", "expected_clause_type": "confidentiality"}
+    ]
+  },
+  {
+    "document_id": "nda_sample",
+    "path": "NDA.pdf",
+    "expected_contract_type": "nda",
+    "checks": [
+      {"contains": "confidential information", "expected_clause_type": "definition"},
+      {"contains": "permitted purpose", "expected_clause_type": "permitted_use"},
+      {"contains": "return", "expected_clause_type": "return_destroy"},
+      {"contains": "injunctive", "expected_clause_type": "remedies"},
+      {"contains": "required by law", "expected_clause_type": "compelled_disclosure"}
+    ]
+  },
+  {
+    "document_id": "sa_sample",
+    "path": "SA.pdf",
+    "expected_contract_type": "vendor",
+    "checks": [
+      {"contains": "services", "expected_clause_type": "scope_of_services"},
+      {"contains": "payment", "expected_clause_type": "payment_terms"},
+      {"contains": "confidential", "expected_clause_type": "confidentiality"},
+      {"contains": "intellectual property", "expected_clause_type": "intellectual_property"},
+      {"contains": "insurance", "expected_clause_type": "insurance"}
+    ]
+  }
+]

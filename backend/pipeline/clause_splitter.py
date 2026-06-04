@@ -7,7 +7,8 @@ with Qwen3.5 fallback for complex or narrative-style contracts.
 import re
 import json
 import logging
-from typing import List, Optional
+from collections import Counter
+from typing import Any, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +36,95 @@ CLAUSE_PATTERNS = [
 
 # Combined pattern
 CLAUSE_SPLIT_PATTERN = r'(' + '|'.join(CLAUSE_PATTERNS) + r')'
+TOP_LEVEL_CLAUSE_PATTERN = re.compile(
+    r"(?m)^\s*((?:\d+)\.|(?:ARTICLE|Article|SECTION|Section|CLAUSE|Clause)\s+\d+[.:]?)\s*"
+)
+SECTION_MARKER_PATTERN = re.compile(
+    r"(?m)^\s*((?:\d+(?:\.\d+)+\.?)|(?:\([a-z]\)|\([ivx]+\)|[ivx]+\.|[A-Z]\.))\s*"
+)
+
+# Matches a lone section heading that leaked in from the next clause boundary:
+# e.g. "Confidentiality", "Ownership of Intellectual Property", "Governing Law"
+_ORPHAN_HEADING_RE = re.compile(
+    r"(?:\n[ \t]*){1,3}([A-Z][A-Za-z /()&-]{0,69})\s*$"
+)
+
+
+def _strip_trailing_heading(text: str) -> str:
+    """Remove a lone section heading that bled in from the next clause's boundary.
+
+    The contract PDF text often has the *next* section's heading sitting on its
+    own line right before the next numbered clause marker, so it ends up appended
+    to the preceding clause's text during regex splitting.  This causes the
+    keyword classifier to predict the wrong clause type (e.g. 'confidentiality'
+    for a payment clause that ends with 'Confidentiality').
+    """
+    m = _ORPHAN_HEADING_RE.search(text)
+    if not m:
+        return text
+    candidate = m.group(1).strip()
+    words = candidate.split()
+    # Accept as a heading: 1–5 words, no terminal punctuation, no function words
+    # that signal a genuine sentence fragment worth keeping.
+    if (
+        1 <= len(words) <= 5
+        and candidate[-1] not in ".,:;?!"
+        and not re.search(
+            r"\b(will|shall|must|may|is|are|was|were|has|have|had|the|a|an)\b",
+            candidate,
+        )
+    ):
+        stripped = text[: m.start()].rstrip()
+        if len(stripped.strip()) >= 30:
+            return stripped
+    return text
+
+
+def _line_key(line: str) -> str:
+    return re.sub(r"\s+", " ", line.strip().lower())
+
+
+def _looks_like_clause_start(line: str) -> bool:
+    return bool(re.match(
+        r"^\s*(?:\d+(?:\.\d+)*\.?|[A-Z]\.|[IVX]+\.|\([a-z]\)|(?:article|section|clause)\s+\d+)",
+        line,
+        flags=re.IGNORECASE,
+    ))
+
+
+def clean_extracted_text(text: str) -> str:
+    """Remove deterministic PDF page artifacts without changing clause numbering."""
+    if not text:
+        return ""
+
+    raw_lines = [line.rstrip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    keys = [
+        _line_key(line)
+        for line in raw_lines
+        if 0 < len(_line_key(line)) <= 90 and not _looks_like_clause_start(line)
+    ]
+    repeated = {key for key, count in Counter(keys).items() if count >= 2}
+
+    cleaned_lines: List[str] = []
+    for line in raw_lines:
+        stripped = line.strip()
+        key = _line_key(line)
+        if not stripped:
+            if cleaned_lines and cleaned_lines[-1] != "":
+                cleaned_lines.append("")
+            continue
+        if re.fullmatch(r"page\s+\d+(?:\s+of\s+\d+)?", stripped, flags=re.IGNORECASE):
+            continue
+        if re.fullmatch(r"\d+\s*(?:of\s*\d+)?", stripped, flags=re.IGNORECASE):
+            continue
+        if key in repeated:
+            continue
+        cleaned_lines.append(stripped)
+
+    cleaned = "\n".join(cleaned_lines)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    return cleaned.strip()
 
 
 def split_clauses_regex(text: str, min_clause_length: int = 50) -> List[str]:
@@ -51,6 +141,8 @@ def split_clauses_regex(text: str, min_clause_length: int = 50) -> List[str]:
     if not text or not text.strip():
         return []
     
+    text = clean_extracted_text(text)
+
     # Combined regex pattern for all clause markers
     pattern = r'(?=(?:^|\n)\s*(?:(?:\d+\.)+|(?:ARTICLE|Article|SECTION|Section|CLAUSE|Clause)\s+\d+[.:]?\s*|(?:[IVX]+\.|[ivx]+\.|\([ivx]+\))\s*|\([a-z]\)\s+))'
     
@@ -80,6 +172,91 @@ def split_clauses_regex(text: str, min_clause_length: int = 50) -> List[str]:
     return clauses
 
 
+def _normalize_marker(marker: str) -> str:
+    marker = re.sub(r"\s+", " ", marker.strip())
+    marker = re.sub(r"\.$", "", marker)
+    return marker
+
+
+def _heading_from_clause(text: str, marker: str) -> str:
+    first_line = re.sub(r"\s+", " ", text.strip().splitlines()[0] if text.strip() else "")
+    first_line = re.sub(rf"^\s*{re.escape(marker)}\.?\s*", "", first_line).strip()
+    return first_line[:120]
+
+
+def _section_level(marker: str) -> int:
+    normalized = _normalize_marker(marker)
+    if re.fullmatch(r"\d+", normalized):
+        return 1
+    if re.fullmatch(r"\d+(?:\.\d+)+", normalized):
+        return normalized.count(".") + 1
+    return 2
+
+
+def _extract_subclauses(parent_text: str, parent_number: str) -> List[Dict[str, Any]]:
+    subclauses: List[Dict[str, Any]] = []
+    matches = list(SECTION_MARKER_PATTERN.finditer(parent_text))
+    for idx, match in enumerate(matches):
+        marker = _normalize_marker(match.group(1))
+        start = match.start()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(parent_text)
+        section_text = parent_text[start:end].strip()
+        if len(section_text) < 20:
+            continue
+        subclauses.append({
+            "clause_number": marker,
+            "parent_clause_number": parent_number,
+            "clause_level": _section_level(marker),
+            "heading": _heading_from_clause(section_text, marker),
+            "section_type": "subclause",
+            "is_scored": False,
+            "original_text": section_text,
+        })
+    return subclauses
+
+
+def split_clauses_structured(text: str, min_clause_length: int = 50) -> List[Dict[str, Any]]:
+    """Split into scored top-level clauses while preserving nested sections."""
+    if not text or not text.strip():
+        return []
+
+    text = clean_extracted_text(text)
+    matches = list(TOP_LEVEL_CLAUSE_PATTERN.finditer(text))
+    if not matches:
+        return []
+
+    clauses: List[Dict[str, Any]] = []
+    for idx, match in enumerate(matches):
+        start = match.start()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        clause_text = _strip_trailing_heading(text[start:end].strip())
+        if len(clause_text) < min(20, min_clause_length) or _is_likely_header_or_footer(clause_text):
+            continue
+
+        marker = _normalize_marker(match.group(1))
+        subclauses = _extract_subclauses(clause_text, marker)
+        clauses.append({
+            "clause_index": len(clauses),
+            "clause_number": marker,
+            "parent_clause_number": None,
+            "clause_level": 1,
+            "heading": _heading_from_clause(clause_text, marker),
+            "section_type": "clause",
+            "is_scored": True,
+            "text": clause_text,
+            "original_text": clause_text,
+            "subclauses": subclauses,
+            "parsed_section_count": 1 + len(subclauses),
+        })
+
+    logger.info(
+        "Structured splitter found %s top-level clauses and %s parsed sections",
+        len(clauses),
+        sum(c.get("parsed_section_count", 1) for c in clauses),
+    )
+    return clauses
+
+
 def _is_likely_header_or_footer(text: str) -> bool:
     """Check if text is likely a page header, footer, or boilerplate."""
     text_lower = text.lower()
@@ -88,6 +265,7 @@ def _is_likely_header_or_footer(text: str) -> bool:
     skip_patterns = [
         r'^\d+$',  # Just a page number
         r'^page\s+\d+',  # "Page 1"
+        r'^page\s+\d+\s+of\s+\d+',  # "Page 1 of 10"
         r'^confidential',  # Just "Confidential"
         r'^draft',  # Just "Draft"
         r'^©\s*\d{4}',  # Copyright
@@ -188,7 +366,7 @@ def _extract_json_from_text(text: str) -> Optional[List]:
     return None
 
 
-async def split_clauses(text: str, min_clause_length: int = 50, min_clauses_threshold: int = 3) -> List[str]:
+async def split_clauses(text: str, min_clause_length: int = 50, min_clauses_threshold: int = 3) -> List[Any]:
     """
     Hybrid clause splitter: regex first, LLM fallback if needed.
     
@@ -204,10 +382,15 @@ async def split_clauses(text: str, min_clause_length: int = 50, min_clauses_thre
         logger.warning("Empty text provided to clause splitter")
         return []
     
-    # Stage 1: Try regex first
+    # Stage 1: Try structured top-level regex first
+    structured_clauses = split_clauses_structured(text, min_clause_length)
+    if len(structured_clauses) >= min_clauses_threshold:
+        return structured_clauses
+
+    # Stage 2: Try legacy flat regex
     clauses = split_clauses_regex(text, min_clause_length)
     
-    # Stage 2: If regex found too few clauses, try LLM
+    # Stage 3: If regex found too few clauses, try LLM
     if len(clauses) < min_clauses_threshold:
         logger.info(f"Regex found only {len(clauses)} clauses, trying LLM fallback...")
         llm_clauses = await split_clauses_llm(text)
