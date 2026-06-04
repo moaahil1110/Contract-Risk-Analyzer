@@ -90,7 +90,11 @@ def _mock_weasyprint(monkeypatch):
 
 def test_analysis_api_queues_once_and_status_returns_progress(monkeypatch):
     _disable_database(monkeypatch)
-    monkeypatch.setattr(analyse, "enqueue_contract_analysis", lambda contract_id, task_id=None: "task-123")
+
+    async def fake_enqueue_contract_analysis(contract_id, task_id=None):
+        return "task-123"
+
+    monkeypatch.setattr(analyse, "enqueue_contract_analysis_async", fake_enqueue_contract_analysis)
 
     contract_id = "api-test-queued"
     upload.contract_store.clear()

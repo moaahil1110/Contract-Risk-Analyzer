@@ -25,7 +25,7 @@ from db.queries import (
 )
 from db.supabase_client import is_supabase_configured
 from services.analysis_pipeline import detect_contract_type, resolve_contract_type, _provider_exhaustion_warning
-from services.job_queue import create_local_job, enqueue_contract_analysis, get_local_active_job
+from services.job_queue import create_local_job, enqueue_contract_analysis_async, get_local_active_job
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -157,7 +157,7 @@ async def start_analysis(
         })
 
     try:
-        task_id = enqueue_contract_analysis(contract_id, task_id)
+        task_id = await enqueue_contract_analysis_async(contract_id, task_id)
     except Exception as exc:
         await update_contract_progress(contract_id, CONTRACT_STATUS_FAILED, 100, "Failed to enqueue analysis", str(exc))
         if contract_id in contract_store:
@@ -262,7 +262,7 @@ async def rerun_analysis(
         "Analysis queued",
     )
     try:
-        task_id = enqueue_contract_analysis(contract_id, task_id)
+        task_id = await enqueue_contract_analysis_async(contract_id, task_id)
     except Exception as exc:
         await update_contract_progress(
             contract_id,

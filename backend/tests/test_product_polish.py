@@ -315,7 +315,11 @@ def test_delete_requires_ownership(monkeypatch):
 
 def test_rerun_allowed_for_complete_and_failed(monkeypatch):
     _disable_database(monkeypatch)
-    monkeypatch.setattr(analyse, "enqueue_contract_analysis", lambda contract_id, task_id=None: "task-rerun")
+
+    async def fake_enqueue_contract_analysis(contract_id, task_id=None):
+        return "task-rerun"
+
+    monkeypatch.setattr(analyse, "enqueue_contract_analysis_async", fake_enqueue_contract_analysis)
 
     for status in ("complete", "failed"):
         upload.contract_store.clear()
@@ -373,7 +377,11 @@ def test_rerun_blocked_for_active_states(monkeypatch):
 
 def test_rerun_clears_old_clause_analyses_and_results(monkeypatch):
     _disable_database(monkeypatch)
-    monkeypatch.setattr(analyse, "enqueue_contract_analysis", lambda contract_id, task_id=None: "task-rerun")
+
+    async def fake_enqueue_contract_analysis(contract_id, task_id=None):
+        return "task-rerun"
+
+    monkeypatch.setattr(analyse, "enqueue_contract_analysis_async", fake_enqueue_contract_analysis)
 
     contract_id = "c-clear"
     _complete_contract_in_store(contract_id, _TEST_USER["id"])

@@ -31,6 +31,7 @@ cryptography==46.0.3
 
 # PDF export
 weasyprint==62.3
+pydyf==0.10.0
 
 # Environment variables
 python-dotenv==1.0.1

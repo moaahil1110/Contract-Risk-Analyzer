@@ -252,7 +252,11 @@ def test_invalid_jwt_returns_401(monkeypatch):
 def test_owner_can_start_analysis_and_poll_status(monkeypatch):
     _set_dev_mode(monkeypatch, enabled=False)
     monkeypatch.setattr(analyse, "is_supabase_configured", lambda: False)
-    monkeypatch.setattr(analyse, "enqueue_contract_analysis", lambda contract_id, task_id=None: "task-123")
+
+    async def fake_enqueue_contract_analysis(contract_id, task_id=None):
+        return "task-123"
+
+    monkeypatch.setattr(analyse, "enqueue_contract_analysis_async", fake_enqueue_contract_analysis)
 
     async def _false_async(*_args, **_kwargs):
         return False

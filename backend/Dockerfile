@@ -6,11 +6,11 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr-eng \
     libtesseract-dev \
     poppler-utils \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libgomp1 \
     libcairo2 \
     libpango-1.0-0 \
@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 ARG DOWNLOAD_EMBEDDING_MODEL=true
@@ -35,7 +35,7 @@ RUN if [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
     fi
 
 # Copy application code
-COPY . .
+COPY backend/ .
 
 # Create directory for ChromaDB persistence
 RUN mkdir -p /app/chroma_db

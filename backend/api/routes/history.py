@@ -152,6 +152,9 @@ async def get_history(
 
     supabase_ready = is_supabase_configured()
 
+    if not supabase_ready and not DEV_MODE:
+        raise HTTPException(status_code=503, detail="Database service unavailable")
+
     if supabase_ready:
         try:
             contracts = await get_user_contracts(
@@ -218,6 +221,9 @@ async def get_history_stats(
 
     supabase_ready = is_supabase_configured()
 
+    if not supabase_ready and not DEV_MODE:
+        raise HTTPException(status_code=503, detail="Database service unavailable")
+
     if supabase_ready:
         try:
             contracts = await get_user_contracts(user_id)
@@ -279,6 +285,9 @@ async def get_history_detail(
     _require_supabase_persistable_user(user_id)
 
     supabase_ready = is_supabase_configured()
+
+    if not supabase_ready and not DEV_MODE:
+        raise HTTPException(status_code=503, detail="Database service unavailable")
 
     if supabase_ready:
         try:

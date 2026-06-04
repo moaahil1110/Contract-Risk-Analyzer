@@ -77,11 +77,68 @@ celery_app = create_celery_app()
 
 def enqueue_contract_analysis(contract_id: str, task_id: str | None = None) -> str:
     task_id = task_id or str(uuid.uuid4())
+
+    if CELERY_TASK_ALWAYS_EAGER:
+        try:
+            if celery_app is not None:
+                from worker import analyse_contract_task
+
+                result = analyse_contract_task.apply(args=[contract_id], task_id=task_id)
+                if result.failed():
+                    result.get(propagate=True)
+                task_id = result.id
+            else:
+                from services.analysis_pipeline import run_contract_analysis_sync
+
+                run_contract_analysis_sync(contract_id=contract_id, celery_task_id=task_id)
+            if contract_id in local_job_store:
+                local_job_store[contract_id].update({
+                    "status": "succeeded",
+                    "current_stage": "complete",
+                    "progress_percent": 100,
+                })
+        except Exception:
+            if contract_id in local_job_store:
+                local_job_store[contract_id].update({
+                    "status": "failed",
+                    "current_stage": "failed",
+                    "progress_percent": 100,
+                })
+            raise
+        return task_id
+
     if celery_app is None:
         return task_id
 
     result = celery_app.send_task("worker.analyse_contract_task", args=[contract_id], task_id=task_id)
     return result.id
+
+
+async def enqueue_contract_analysis_async(contract_id: str, task_id: str | None = None) -> str:
+    task_id = task_id or str(uuid.uuid4())
+
+    if CELERY_TASK_ALWAYS_EAGER:
+        try:
+            from services.analysis_pipeline import run_contract_analysis
+
+            await run_contract_analysis(contract_id=contract_id, celery_task_id=task_id)
+            if contract_id in local_job_store:
+                local_job_store[contract_id].update({
+                    "status": "succeeded",
+                    "current_stage": "complete",
+                    "progress_percent": 100,
+                })
+        except Exception:
+            if contract_id in local_job_store:
+                local_job_store[contract_id].update({
+                    "status": "failed",
+                    "current_stage": "failed",
+                    "progress_percent": 100,
+                })
+            raise
+        return task_id
+
+    return enqueue_contract_analysis(contract_id, task_id)
 
 
 def create_local_job(contract_id: str, task_id: str) -> Dict[str, Any]:

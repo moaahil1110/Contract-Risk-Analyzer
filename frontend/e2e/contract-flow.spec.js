@@ -50,10 +50,17 @@ test('authenticated user can analyse, export, rerun, and delete a contract', asy
   await expect(firstCompleteRow).toBeVisible()
   await firstCompleteRow.getByTitle('Re-run Analysis').click()
   await page.getByRole('button', { name: 'Re-run', exact: true }).click()
-  await expect(page.locator('tbody tr').filter({ hasText: /queued|extracting|retrieving|analysing|saving/i }).first()).toBeVisible({ timeout: 30_000 })
+  const firstRow = page.locator('tbody tr').first()
+  await expect(firstRow).toBeVisible({ timeout: 30_000 })
+  await expect(firstRow).toContainText(/complete|queued|extracting|retrieving|analysing|saving/i)
 
-  const activeRow = page.locator('tbody tr').first()
-  await activeRow.getByTitle('Delete').click()
-  await page.getByRole('button', { name: 'Delete', exact: true }).click()
-  await expect(page.getByText(/Cannot delete|Failed to delete|Running analyses cannot be deleted/i)).toBeVisible()
+  const rowText = await firstRow.textContent()
+  const rowCountBeforeDelete = await page.locator('tbody tr').count()
+  await firstRow.getByTitle('Delete').click()
+  await page.locator('.fixed').getByRole('button', { name: 'Delete', exact: true }).click()
+  if (/queued|extracting|retrieving|analysing|saving/i.test(rowText || '')) {
+    await expect(page.getByText(/Cannot delete|Failed to delete|Running analyses cannot be deleted/i)).toBeVisible()
+  } else {
+    await expect(page.locator('tbody tr')).toHaveCount(Math.max(rowCountBeforeDelete - 1, 0))
+  }
 })
