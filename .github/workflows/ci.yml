@@ -30,6 +30,11 @@ jobs:
         run: python -m pytest tests
       - name: Prepare offline embedding model
         run: python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/tmp/all-MiniLM-L6-v2')"
+      - name: Build benchmark store
+        env:
+          EMBEDDING_OFFLINE: "true"
+          EMBEDDING_MODEL_PATH: /tmp/all-MiniLM-L6-v2
+        run: python scripts/build_benchmarks.py --force
       - name: Run RAG eval
         env:
           EMBEDDING_OFFLINE: "true"

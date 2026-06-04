@@ -216,6 +216,23 @@ def build_benchmark_store(benchmark_directory: Optional[str] = None) -> Dict[str
     return result
 
 
+def ensure_benchmark_store_ready() -> chromadb.Collection:
+    """Ensure a fresh deployment has a populated benchmark collection."""
+    collection = get_benchmark_collection()
+    if not hasattr(collection, "count"):
+        return collection
+    expected_count = len(load_benchmarks(benchmark_dir()))
+    current_count = collection.count()
+    if current_count < expected_count:
+        logger.warning(
+            "Benchmark collection has %s/%s entries; rebuilding missing benchmark embeddings",
+            current_count,
+            expected_count,
+        )
+        build_benchmark_store()
+    return collection
+
+
 def _citation_metadata(
     benchmark: Dict[str, Any],
     *,
@@ -362,7 +379,7 @@ def retrieve_benchmarks(
     Returns:
         List of benchmark dicts with text, risk_notes, standard_version, and similarity score
     """
-    collection = get_benchmark_collection()
+    collection = ensure_benchmark_store_ready()
     
     # Generate embedding for the clause
     query_embedding = embed_text(clause_text)
@@ -453,7 +470,7 @@ def init_engine():
     logger.info("RAG Engine initializing...")
     get_embedding_model()
     get_chroma_client()
-    get_benchmark_collection()
+    ensure_benchmark_store_ready()
     logger.info("RAG Engine initialized successfully")
 
 
