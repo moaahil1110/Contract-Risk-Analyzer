@@ -52,3 +52,4 @@ frontend/test-results/
 
 # Local assistant/tooling state
 .claude/
+.vercel
