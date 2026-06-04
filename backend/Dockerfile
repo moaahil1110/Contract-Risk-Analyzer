@@ -38,7 +38,7 @@ RUN if [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
 COPY backend/ .
 
 # Create directory for ChromaDB persistence
-RUN mkdir -p /app/chroma_db
+RUN mkdir -p /app/chroma_db && chmod +x /app/start_railway.sh
 
 ENV EMBEDDING_MODEL=all-MiniLM-L6-v2
 ENV EMBEDDING_OFFLINE=false
@@ -47,5 +47,5 @@ ENV RAG_EAGER_INIT=false
 # Expose port
 EXPOSE 8000
 
-# Run the application. Railway provides PORT at runtime.
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Run the web server and, by default, a lightweight worker in the same Railway service.
+CMD ["/app/start_railway.sh"]
