@@ -25,6 +25,9 @@ WORKDIR /app
 
 # Copy requirements first for better caching
 COPY backend/requirements.txt .
+# sentence-transformers depends on torch. Install a CPU-only torch wheel first so
+# pip does not pull large CUDA packages into the Railway image.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.3.1
 RUN pip install --no-cache-dir -r requirements.txt
 
 ARG DOWNLOAD_EMBEDDING_MODEL=false
