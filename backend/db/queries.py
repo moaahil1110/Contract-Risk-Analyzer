@@ -203,8 +203,11 @@ async def update_contract_progress(
         }
         if status == "queued":
             update_data["queued_at"] = now
+            update_data["started_at"] = None
+            update_data["completed_at"] = None
         if status in {"extracting", "retrieving_benchmarks", "analysing"}:
             update_data["started_at"] = now
+            update_data["completed_at"] = None
         if status in {"complete", "failed"}:
             update_data["completed_at"] = now
 
