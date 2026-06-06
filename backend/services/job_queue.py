@@ -162,20 +162,47 @@ def get_local_active_job(contract_id: str) -> Dict[str, Any] | None:
 
 
 def get_queue_health() -> Dict[str, Any]:
+    base = {
+        "worker_pool": CELERY_WORKER_POOL,
+        "worker_concurrency": CELERY_WORKER_CONCURRENCY,
+        "task_always_eager": CELERY_TASK_ALWAYS_EAGER,
+    }
     try:
         client = Redis.from_url(REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
         client.ping()
-        return {
+        health = {
             "reachable": True,
-            "worker_pool": CELERY_WORKER_POOL,
-            "worker_concurrency": CELERY_WORKER_CONCURRENCY,
-            "task_always_eager": CELERY_TASK_ALWAYS_EAGER,
+            "broker_reachable": True,
+            **base,
         }
     except Exception as exc:
         return {
             "reachable": False,
-            "worker_pool": CELERY_WORKER_POOL,
-            "worker_concurrency": CELERY_WORKER_CONCURRENCY,
-            "task_always_eager": CELERY_TASK_ALWAYS_EAGER,
+            "broker_reachable": False,
+            **base,
             "error": str(exc),
         }
+
+    if celery_app is None or CELERY_TASK_ALWAYS_EAGER:
+        health.update({
+            "workers_online": 0,
+            "worker_names": [],
+            "worker_ping": {},
+        })
+        return health
+
+    try:
+        ping = celery_app.control.inspect(timeout=1).ping() or {}
+        health.update({
+            "workers_online": len(ping),
+            "worker_names": sorted(ping.keys()),
+            "worker_ping": ping,
+        })
+    except Exception as exc:
+        health.update({
+            "workers_online": 0,
+            "worker_names": [],
+            "worker_ping": {},
+            "worker_error": str(exc),
+        })
+    return health

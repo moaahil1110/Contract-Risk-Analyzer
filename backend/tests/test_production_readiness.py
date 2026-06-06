@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from core import embedding_config
 from db import queries
+from services import job_queue
 import main
 
 
@@ -58,6 +59,36 @@ def test_detailed_health_reports_rag_and_queue(monkeypatch):
     assert "broker_url" not in body["queue"]
     assert body["weasyprint"]["usable"] is True
     assert "pdf_bytes" in body["weasyprint"]
+
+
+def test_queue_health_reports_online_workers(monkeypatch):
+    class FakeRedis:
+        def ping(self):
+            return True
+
+    class FakeInspect:
+        def ping(self):
+            return {"celery@worker": {"ok": "pong"}}
+
+    class FakeControl:
+        def inspect(self, timeout=1):
+            assert timeout == 1
+            return FakeInspect()
+
+    class FakeCelery:
+        control = FakeControl()
+
+    monkeypatch.setattr(job_queue.Redis, "from_url", lambda *_args, **_kwargs: FakeRedis())
+    monkeypatch.setattr(job_queue, "celery_app", FakeCelery())
+    monkeypatch.setattr(job_queue, "CELERY_TASK_ALWAYS_EAGER", False)
+
+    health = job_queue.get_queue_health()
+
+    assert health["reachable"] is True
+    assert health["broker_reachable"] is True
+    assert health["workers_online"] == 1
+    assert health["worker_names"] == ["celery@worker"]
+    assert "broker_url" not in health
 
 
 def test_detailed_health_degrades_when_weasyprint_unusable_in_production(monkeypatch):
