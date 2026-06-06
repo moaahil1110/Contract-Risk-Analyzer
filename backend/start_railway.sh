@@ -1,9 +1,13 @@
 #!/bin/sh
 set -e
 
+if [ "${BUILD_BENCHMARKS_ON_START:-true}" = "true" ]; then
+  echo "Ensuring benchmark vector store is populated..."
+  python scripts/build_benchmarks.py
+fi
+
 if [ "${PROCESS_TYPE:-web}" = "worker" ]; then
   echo "Preparing Celery worker..."
-  python scripts/build_benchmarks.py
 
   echo "Starting Celery worker..."
   celery -A worker.celery_app worker \

@@ -42,6 +42,7 @@ dump.rdb
 terminal-output-updared.txt
 risk-report*.pdf
 frontend/test-results/
+backend/reports/
 
 # OS / editor files
 .DS_Store

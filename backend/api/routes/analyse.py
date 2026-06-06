@@ -5,8 +5,9 @@ Priority 4: All endpoints require authentication and enforce contract ownership.
 """
 
 import logging
+import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 
@@ -21,6 +22,7 @@ from db.queries import (
     get_contract_with_clauses_for_user,
     get_active_analysis_job_for_contract,
     rerun_contract,
+    update_analysis_job,
     update_contract_progress,
 )
 from db.supabase_client import is_supabase_configured
@@ -31,6 +33,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+ACTIVE_JOB_TIMEOUT_MINUTES = int(os.getenv("ANALYSIS_ACTIVE_JOB_TIMEOUT_MINUTES", "30"))
 
 # In-memory store for analysis results (fallback when Supabase is not configured)
 analysis_results: Dict[str, Any] = {}
@@ -58,6 +61,84 @@ def _progress_response(contract_id: str, record: Dict[str, Any], job: Optional[D
         "error_message": record.get("error_message") or record.get("error"),
         "total_clauses": record.get("total_clauses") or len(record.get("clauses") or []),
     }
+
+
+def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except ValueError:
+        return None
+
+
+def _active_job_age_minutes(job: Dict[str, Any]) -> Optional[float]:
+    reference = (
+        _parse_timestamp(job.get("updated_at"))
+        or _parse_timestamp(job.get("started_at"))
+        or _parse_timestamp(job.get("created_at"))
+    )
+    if not reference:
+        return None
+    return (datetime.now(timezone.utc) - reference).total_seconds() / 60
+
+
+def _is_stale_active_job(job: Optional[Dict[str, Any]]) -> bool:
+    if not job:
+        return False
+    age = _active_job_age_minutes(job)
+    return bool(age is not None and age >= max(1, ACTIVE_JOB_TIMEOUT_MINUTES))
+
+
+async def _mark_active_job_stale(contract_id: str, job: Dict[str, Any], *, update_contract: bool) -> None:
+    message = f"Analysis job exceeded {ACTIVE_JOB_TIMEOUT_MINUTES} minute timeout"
+    await update_analysis_job(
+        job["id"],
+        "failed",
+        stage="failed",
+        error=message,
+        metadata={
+            **(job.get("metadata") or {}),
+            "stale_timeout_minutes": ACTIVE_JOB_TIMEOUT_MINUTES,
+            "marked_failed_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+    if update_contract:
+        await update_contract_progress(
+            contract_id,
+            CONTRACT_STATUS_FAILED,
+            100,
+            "Analysis timed out",
+            message,
+        )
+
+
+async def _get_reusable_active_job(contract_id: str, *, fail_stale_contract: bool = False) -> Optional[Dict[str, Any]]:
+    active_job = await get_active_analysis_job_for_contract(contract_id)
+    if active_job and _is_stale_active_job(active_job):
+        logger.warning(
+            "Marking stale analysis job failed before %s: contract_id=%s job_id=%s",
+            "status response" if fail_stale_contract else "requeue",
+            contract_id,
+            active_job.get("id"),
+        )
+        await _mark_active_job_stale(contract_id, active_job, update_contract=fail_stale_contract)
+        return None
+    return active_job
+
+
+def _apply_stale_failure_to_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    updated = dict(record)
+    updated.update({
+        "status": CONTRACT_STATUS_FAILED,
+        "progress_percent": 100,
+        "status_message": "Analysis timed out",
+        "error_message": f"Analysis job exceeded {ACTIVE_JOB_TIMEOUT_MINUTES} minute timeout",
+    })
+    return updated
 
 
 def _check_contract_ownership(contract_id: str, user_id: str) -> Optional[Dict[str, Any]]:
@@ -122,7 +203,7 @@ async def start_analysis(
         }
 
     try:
-        active_job = await get_active_analysis_job_for_contract(contract_id)
+        active_job = await _get_reusable_active_job(contract_id, fail_stale_contract=False)
     except Exception:
         if not DEV_MODE:
             raise HTTPException(status_code=503, detail="Database service unavailable")
@@ -218,7 +299,7 @@ async def rerun_analysis(
         )
     # Check active job
     try:
-        active_job = await get_active_analysis_job_for_contract(contract_id)
+        active_job = await _get_reusable_active_job(contract_id, fail_stale_contract=False)
     except Exception:
         if not DEV_MODE:
             raise HTTPException(status_code=503, detail="Database service unavailable")
@@ -382,7 +463,11 @@ async def get_analysis(
                     "parsed_section_count": health.get("parsed_section_count") or len(clauses),
                 }
             if db_contract:
-                active_job = await get_active_analysis_job_for_contract(contract_id)
+                raw_active_job = await get_active_analysis_job_for_contract(contract_id)
+                was_stale = _is_stale_active_job(raw_active_job)
+                active_job = await _get_reusable_active_job(contract_id, fail_stale_contract=True)
+                if was_stale:
+                    db_contract = _apply_stale_failure_to_record(db_contract)
                 return _progress_response(contract_id, db_contract, active_job)
         except Exception as e:
             logger.warning(f"Failed to get results from Supabase: {e}")
@@ -444,7 +529,14 @@ async def get_analysis_status(
         try:
             db_contract = await get_contract_for_user(contract_id, user_id)
             if db_contract:
-                active_job = await get_active_analysis_job_for_contract(contract_id)
+                raw_active_job = await get_active_analysis_job_for_contract(contract_id)
+                was_stale = _is_stale_active_job(raw_active_job)
+                active_job = await _get_reusable_active_job(contract_id, fail_stale_contract=True)
+                if was_stale:
+                    db_contract["status"] = CONTRACT_STATUS_FAILED
+                    db_contract["progress_percent"] = 100
+                    db_contract["status_message"] = "Analysis timed out"
+                    db_contract["error_message"] = f"Analysis job exceeded {ACTIVE_JOB_TIMEOUT_MINUTES} minute timeout"
                 return _progress_response(contract_id, db_contract, active_job)
         except Exception as e:
             logger.debug(f"Failed to get status from Supabase: {e}")

@@ -65,10 +65,18 @@ def test_queue_health_reports_online_workers(monkeypatch):
     class FakeRedis:
         def ping(self):
             return True
+        def llen(self, _queue):
+            return 2
 
     class FakeInspect:
         def ping(self):
             return {"celery@worker": {"ok": "pong"}}
+        def active(self):
+            return {"celery@worker": [{"id": "active-task"}]}
+        def reserved(self):
+            return {"celery@worker": []}
+        def scheduled(self):
+            return {"celery@worker": []}
 
     class FakeControl:
         def inspect(self, timeout=1):
@@ -88,6 +96,10 @@ def test_queue_health_reports_online_workers(monkeypatch):
     assert health["broker_reachable"] is True
     assert health["workers_online"] == 1
     assert health["worker_names"] == ["celery@worker"]
+    assert health["broker_queue_depth"] == 2
+    assert health["active_task_count"] == 1
+    assert health["reserved_task_count"] == 0
+    assert health["scheduled_task_count"] == 0
     assert "broker_url" not in health
 
 

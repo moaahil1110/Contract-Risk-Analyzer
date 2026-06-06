@@ -1,0 +1,163 @@
+[
+  {
+    "document_id": "ec_sample",
+    "path": "EC.pdf",
+    "expected_contract_type": "employment",
+    "cases": [
+      {
+        "case_id": "ec_commencement",
+        "clause_number": "1",
+        "expected_clause_type": "commencement",
+        "expected_benchmark_clause_types": ["commencement"],
+        "acceptable_benchmark_ids": ["employment_031", "employment_032", "employment_033"]
+      },
+      {
+        "case_id": "ec_initial_job_duties",
+        "clause_number": "2",
+        "expected_clause_type": "job_duties",
+        "expected_benchmark_clause_types": ["job_duties"],
+        "acceptable_benchmark_ids": ["employment_034", "employment_035", "employment_036"]
+      },
+      {
+        "case_id": "ec_work_hours",
+        "contains": "normal hours",
+        "expected_clause_type": "work_hours",
+        "expected_benchmark_clause_types": ["work_hours"],
+        "acceptable_benchmark_ids": ["employment_043", "employment_044", "employment_045"]
+      },
+      {
+        "case_id": "ec_leave",
+        "contains": "annual leave",
+        "expected_clause_type": "leave",
+        "expected_benchmark_clause_types": ["leave"],
+        "acceptable_benchmark_ids": ["employment_046", "employment_047", "employment_048"]
+      },
+      {
+        "case_id": "ec_confidentiality",
+        "contains": "confidential information",
+        "expected_clause_type": "confidentiality",
+        "expected_benchmark_clause_types": ["confidentiality"],
+        "acceptable_benchmark_ids": ["employment_013", "employment_014", "employment_015"]
+      }
+    ]
+  },
+  {
+    "document_id": "nda_sample",
+    "path": "NDA.pdf",
+    "expected_contract_type": "nda",
+    "cases": [
+      {
+        "case_id": "nda_definition",
+        "clause_number": "3",
+        "expected_clause_type": "definition",
+        "expected_benchmark_clause_types": ["definition", "definitions"],
+        "acceptable_benchmark_ids": ["nda_001", "nda_002", "nda_003", "nda_049"]
+      },
+      {
+        "case_id": "nda_survival",
+        "clause_number": "7",
+        "expected_clause_type": "survival",
+        "expected_benchmark_clause_types": ["survival", "term"],
+        "acceptable_benchmark_ids": ["nda_004", "nda_005", "nda_006", "nda_058", "nda_059", "nda_060"]
+      },
+      {
+        "case_id": "nda_business_opportunity",
+        "clause_number": "9",
+        "expected_clause_type": "business_opportunity",
+        "expected_benchmark_clause_types": ["business_opportunity", "non_circumvention"],
+        "acceptable_benchmark_ids": ["nda_056", "nda_057"]
+      },
+      {
+        "case_id": "nda_non_compete",
+        "clause_number": "10",
+        "expected_clause_type": "non_compete",
+        "expected_benchmark_clause_types": ["non_compete"],
+        "acceptable_benchmark_ids": ["nda_030", "nda_050"]
+      },
+      {
+        "case_id": "nda_remedies_specific",
+        "clause_number": "18",
+        "expected_clause_type": "remedies",
+        "expected_benchmark_clause_types": ["remedies"],
+        "acceptable_benchmark_ids": ["nda_019", "nda_020", "nda_021"]
+      },
+      {
+        "case_id": "nda_breach_notification",
+        "clause_number": "21",
+        "expected_clause_type": "disclosure",
+        "expected_benchmark_clause_types": ["disclosure", "data_security", "return_destroy"],
+        "acceptable_benchmark_ids": ["nda_010", "nda_011", "nda_012", "nda_046", "nda_047", "nda_048"]
+      },
+      {
+        "case_id": "nda_injunctive_relief",
+        "clause_number": "29",
+        "expected_clause_type": "remedies",
+        "expected_benchmark_clause_types": ["remedies"],
+        "acceptable_benchmark_ids": ["nda_019", "nda_020", "nda_021"]
+      },
+      {
+        "case_id": "nda_fees_costs",
+        "clause_number": "34",
+        "expected_clause_type": "fees_costs",
+        "expected_benchmark_clause_types": ["fees_costs"],
+        "acceptable_benchmark_ids": ["nda_042"]
+      },
+      {
+        "case_id": "nda_severability_enforceability",
+        "clause_number": "35",
+        "expected_clause_type": "severability",
+        "expected_benchmark_clause_types": ["severability"],
+        "acceptable_benchmark_ids": ["nda_029", "nda_053"]
+      },
+      {
+        "case_id": "nda_entire_agreement",
+        "clause_number": "38",
+        "expected_clause_type": "entire_agreement",
+        "expected_benchmark_clause_types": ["entire_agreement"],
+        "acceptable_benchmark_ids": ["nda_044"]
+      }
+    ]
+  },
+  {
+    "document_id": "sa_sample",
+    "path": "SA.pdf",
+    "expected_contract_type": "vendor",
+    "cases": [
+      {
+        "case_id": "sa_scope",
+        "contains": "services",
+        "expected_clause_type": "scope_of_services",
+        "expected_benchmark_clause_types": ["scope_of_services"],
+        "acceptable_benchmark_ids": ["vendor_001", "vendor_002", "vendor_003"]
+      },
+      {
+        "case_id": "sa_payment",
+        "contains": "payment",
+        "expected_clause_type": "payment_terms",
+        "expected_benchmark_clause_types": ["payment_terms"],
+        "acceptable_benchmark_ids": ["vendor_004", "vendor_005", "vendor_006"]
+      },
+      {
+        "case_id": "sa_confidentiality",
+        "contains": "confidential",
+        "expected_clause_type": "confidentiality",
+        "expected_benchmark_clause_types": ["confidentiality"],
+        "acceptable_benchmark_ids": ["vendor_040", "vendor_041", "vendor_042"]
+      },
+      {
+        "case_id": "sa_intellectual_property",
+        "contains": "intellectual property",
+        "expected_clause_type": "intellectual_property",
+        "expected_benchmark_clause_types": ["intellectual_property"],
+        "acceptable_benchmark_ids": ["vendor_028", "vendor_029", "vendor_030"]
+      },
+      {
+        "case_id": "sa_indemnification",
+        "clause_number": "22",
+        "expected_clause_type": "indemnification",
+        "expected_benchmark_clause_types": ["indemnification"],
+        "acceptable_benchmark_ids": ["vendor_016", "vendor_017", "vendor_018"]
+      }
+    ]
+  }
+]

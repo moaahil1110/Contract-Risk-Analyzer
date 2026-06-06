@@ -19,6 +19,7 @@ load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
+CELERY_DEFAULT_QUEUE = os.getenv("CELERY_DEFAULT_QUEUE", "celery")
 
 # macOS + prefork + ML libraries such as PyTorch/Chroma can abort child
 # processes after fork. Keep local/dev stable by default while preserving
@@ -58,16 +59,26 @@ def create_celery_app():
         task_serializer="json",
         accept_content=["json"],
         result_serializer="json",
+        task_default_queue=CELERY_DEFAULT_QUEUE,
         timezone="UTC",
         enable_utc=True,
         task_track_started=True,
         task_always_eager=CELERY_TASK_ALWAYS_EAGER,
         broker_connection_retry_on_startup=True,
+        broker_transport_options={
+            "visibility_timeout": _positive_int_env("CELERY_VISIBILITY_TIMEOUT_SECONDS", 3600),
+            "socket_keepalive": True,
+        },
+        result_backend_transport_options={
+            "visibility_timeout": _positive_int_env("CELERY_VISIBILITY_TIMEOUT_SECONDS", 3600),
+        },
         worker_pool=CELERY_WORKER_POOL,
         worker_concurrency=CELERY_WORKER_CONCURRENCY,
         worker_prefetch_multiplier=1,
         task_acks_late=True,
         task_reject_on_worker_lost=True,
+        task_time_limit=_positive_int_env("CELERY_TASK_TIME_LIMIT_SECONDS", 1800),
+        task_soft_time_limit=_positive_int_env("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", 1500),
     )
     return app
 
@@ -166,6 +177,7 @@ def get_queue_health() -> Dict[str, Any]:
         "worker_pool": CELERY_WORKER_POOL,
         "worker_concurrency": CELERY_WORKER_CONCURRENCY,
         "task_always_eager": CELERY_TASK_ALWAYS_EAGER,
+        "queue_name": CELERY_DEFAULT_QUEUE,
     }
     try:
         client = Redis.from_url(REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
@@ -173,6 +185,7 @@ def get_queue_health() -> Dict[str, Any]:
         health = {
             "reachable": True,
             "broker_reachable": True,
+            "broker_queue_depth": client.llen(CELERY_DEFAULT_QUEUE),
             **base,
         }
     except Exception as exc:
@@ -192,11 +205,18 @@ def get_queue_health() -> Dict[str, Any]:
         return health
 
     try:
-        ping = celery_app.control.inspect(timeout=1).ping() or {}
+        inspector = celery_app.control.inspect(timeout=1)
+        ping = inspector.ping() or {}
+        active = inspector.active() or {}
+        reserved = inspector.reserved() or {}
+        scheduled = inspector.scheduled() or {}
         health.update({
             "workers_online": len(ping),
             "worker_names": sorted(ping.keys()),
             "worker_ping": ping,
+            "active_task_count": sum(len(tasks) for tasks in active.values()),
+            "reserved_task_count": sum(len(tasks) for tasks in reserved.values()),
+            "scheduled_task_count": sum(len(tasks) for tasks in scheduled.values()),
         })
     except Exception as exc:
         health.update({

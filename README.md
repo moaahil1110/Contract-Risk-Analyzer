@@ -130,7 +130,17 @@ OPENCODE_GO_API_KEY=<provider-key>
 OPENCODE_GO_BASE_URL=https://opencode.ai/zen/go/v1
 OPENCODE_GO_MODEL=deepseek-v4-flash
 LLM_PROVIDER_ORDER=groq,opencode_go
+BUILD_BENCHMARKS_ON_START=true
+ANALYSIS_ACTIVE_JOB_TIMEOUT_MINUTES=30
 ```
+
+Railway should run two services from the same GitHub repo plus one Redis service:
+
+- Web service: root directory can stay as the repository root, Dockerfile path `backend/Dockerfile`, default start command from the Docker image. Set `RUN_WORKER_IN_WEB=false` after the worker service is online.
+- Worker service: same repo and Dockerfile, same env vars, plus `PROCESS_TYPE=worker`.
+- Redis service: connect its private Redis URL to both `REDIS_URL` and `CELERY_RESULT_BACKEND` on the web and worker services.
+
+For very small demos, `RUN_WORKER_IN_WEB=true` can process jobs from the web service, but production-like Railway deployments should use the dedicated worker service so web restarts do not leave analyses queued.
 
 Frontend production env:
 
@@ -140,7 +150,7 @@ VITE_SUPABASE_URL=<project-url>
 VITE_SUPABASE_ANON_KEY=<publishable-or-anon-key>
 ```
 
-Railway commands:
+Railway commands if you are not using the Docker image entrypoint:
 
 ```bash
 # Web service

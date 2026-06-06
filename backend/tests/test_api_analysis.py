@@ -129,6 +129,69 @@ def test_analysis_api_queues_once_and_status_returns_progress(monkeypatch):
         assert duplicate.json()["message"] == "Analysis is already queued or running"
 
 
+def test_start_analysis_replaces_stale_active_job(monkeypatch):
+    user_id = "11111111-1111-4111-8111-111111111111"
+    contract_id = "stale-contract"
+    calls = []
+
+    monkeypatch.setattr(analyse, "is_supabase_configured", lambda: True)
+    monkeypatch.setattr(analyse, "ACTIVE_JOB_TIMEOUT_MINUTES", 30)
+
+    async def fake_get_contract_for_user(*_args, **_kwargs):
+        return {
+            "id": contract_id,
+            "user_id": user_id,
+            "filename": "NDA.pdf",
+            "status": "queued",
+            "progress_percent": 0,
+            "status_message": "Analysis queued",
+        }
+
+    async def fake_get_active_job(*_args, **_kwargs):
+        return {
+            "id": "old-job",
+            "contract_id": contract_id,
+            "status": "queued",
+            "current_stage": "queued",
+            "celery_task_id": "old-task",
+            "updated_at": "2026-01-01T00:00:00+00:00",
+            "metadata": {},
+        }
+
+    async def fake_update_job(*args, **kwargs):
+        calls.append(("update_job", args, kwargs))
+        return True
+
+    async def fake_create_job(contract_id_arg, task_id, **_kwargs):
+        calls.append(("create_job", contract_id_arg, task_id))
+        return {"id": "new-job", "celery_task_id": task_id}
+
+    async def fake_update_contract(*args, **kwargs):
+        calls.append(("update_contract", args, kwargs))
+        return True
+
+    async def fake_enqueue(contract_id_arg, task_id=None):
+        calls.append(("enqueue", contract_id_arg, task_id))
+        return task_id
+
+    monkeypatch.setattr(analyse, "get_contract_for_user", fake_get_contract_for_user)
+    monkeypatch.setattr(analyse, "get_active_analysis_job_for_contract", fake_get_active_job)
+    monkeypatch.setattr(analyse, "update_analysis_job", fake_update_job)
+    monkeypatch.setattr(analyse, "create_analysis_job", fake_create_job)
+    monkeypatch.setattr(analyse, "update_contract_progress", fake_update_contract)
+    monkeypatch.setattr(analyse, "enqueue_contract_analysis_async", fake_enqueue)
+
+    with _authenticated_as(user_id=user_id):
+        client = TestClient(app)
+        response = client.post(f"/api/v1/analyse/{contract_id}")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "queued"
+    assert any(call[0] == "update_job" and call[1][1] == "failed" for call in calls)
+    assert any(call[0] == "create_job" for call in calls)
+    assert any(call[0] == "enqueue" for call in calls)
+
+
 def test_api_export_includes_failed_clause_count(monkeypatch):
     _disable_database(monkeypatch)
     _mock_weasyprint(monkeypatch)
