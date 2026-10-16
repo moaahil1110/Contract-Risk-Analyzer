@@ -6,6 +6,7 @@ from pipeline.llm_analyser import (
     _mark_provider_unavailable,
     _parse_retry_after,
     _provider_circuits,
+    _try_nvidia,
     _try_opencode_go,
     reset_provider_circuits,
     analyse_clause_sync,
@@ -126,6 +127,22 @@ def test_opencode_go_429_opens_circuit(monkeypatch):
 
     assert result is None
     assert not _is_provider_available("opencode_go")
+
+
+def test_nvidia_429_opens_circuit(monkeypatch):
+    request = httpx.Request("POST", "https://integrate.api.nvidia.com/v1/chat/completions")
+    response = httpx.Response(429, headers={"retry-after": "5"}, request=request)
+
+    def fake_post(*args, **kwargs):
+        return response
+
+    monkeypatch.setattr("pipeline.llm_analyser.NVIDIA_API_KEY", "test-key")
+    monkeypatch.setattr("pipeline.llm_analyser.httpx.post", fake_post)
+
+    result = _try_nvidia("prompt")
+
+    assert result is None
+    assert not _is_provider_available("nvidia")
 
 
 def test_provider_retry_stops_when_circuit_opens(monkeypatch):

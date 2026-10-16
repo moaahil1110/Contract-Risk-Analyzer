@@ -3,7 +3,8 @@ LLM Analyser Module
 Unified LLM interface with fallback chain and circuit breaker:
 1. Groq qwen/qwen3.8-27b (primary)
 2. OpenRouter google/gemma-4-31b-it:free (fallback 1)
-3. OpenCode Go open-model endpoint (fallback 2)
+3. NVIDIA NIM nvidia/nemotron-3-super-120b-a12b (fallback 2)
+OpenCode Go is still supported but no longer in the default order.
 
 All calls use temperature=0.1 for consistent output.
 JSON parsing is wrapped in try/catch with retry logic.
@@ -29,12 +30,15 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
+NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-super-120b-a12b")
 OPENCODE_GO_API_KEY = os.getenv("OPENCODE_GO_API_KEY")
 OPENCODE_GO_BASE_URL = os.getenv("OPENCODE_GO_BASE_URL", "https://opencode.ai/zen/go/v1").rstrip("/")
 OPENCODE_GO_MODEL = os.getenv("OPENCODE_GO_MODEL", "deepseek-v4-flash")
 LLM_TEMPERATURE = 0.1
 
-LLM_PROVIDER_ORDER = [p.strip() for p in os.getenv("LLM_PROVIDER_ORDER", "groq,openrouter,opencode_go").split(",") if p.strip()]
+LLM_PROVIDER_ORDER = [p.strip() for p in os.getenv("LLM_PROVIDER_ORDER", "groq,openrouter,nvidia").split(",") if p.strip()]
 LLM_PROVIDER_MAX_RETRIES = max(1, int(os.getenv("LLM_PROVIDER_MAX_RETRIES", "2")))
 LLM_PROVIDER_COOLDOWN_SECONDS = max(1, int(os.getenv("LLM_PROVIDER_COOLDOWN_SECONDS", "60")))
 LLM_PROVIDER_MAX_COOLDOWN_SECONDS = max(
@@ -492,6 +496,45 @@ def _try_openrouter(prompt: str) -> Optional[str]:
         raise
 
 
+def _try_nvidia(prompt: str) -> Optional[str]:
+    """Try NVIDIA NIM and return raw response text. Returns None on 429 to open circuit."""
+    if not NVIDIA_API_KEY:
+        logger.warning("NVIDIA_API_KEY not set")
+        return None
+
+    try:
+        logger.info("Calling NVIDIA NIM (%s)...", NVIDIA_MODEL)
+
+        response = httpx.post(
+            f"{NVIDIA_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {NVIDIA_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": NVIDIA_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": LLM_TEMPERATURE,
+            },
+            timeout=60,
+        )
+        logger.info("NVIDIA NIM status: %s", response.status_code)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            retry_after = _parse_retry_after(e)
+            _mark_provider_unavailable("nvidia", retry_after)
+            logger.warning("NVIDIA NIM returned 429, cooling down for %s seconds", retry_after or LLM_PROVIDER_COOLDOWN_SECONDS)
+            return None
+        logger.error("NVIDIA NIM HTTP error: %s", e)
+        raise
+    except Exception as e:
+        logger.error("NVIDIA NIM error: %s", e)
+        raise
+
+
 def _try_opencode_go(prompt: str) -> Optional[str]:
     """Try OpenCode Go and return raw response text. Returns None on 429 to open circuit."""
     if not OPENCODE_GO_API_KEY:
@@ -537,6 +580,8 @@ def _call_provider(provider: str, prompt: str) -> Optional[str]:
         return _try_groq(prompt)
     elif provider == "openrouter":
         return _try_openrouter(prompt)
+    elif provider == "nvidia":
+        return _try_nvidia(prompt)
     elif provider in {"opencode_go", "opencode"}:
         return _try_opencode_go(prompt)
     return None
@@ -592,7 +637,7 @@ async def analyse_clause(
             **_evidence_failure_fields(),
         }
     # Provider chain with circuit breaker and fallbacks.
-    providers = [p for p in LLM_PROVIDER_ORDER if p in ("groq", "openrouter", "opencode_go", "opencode")]
+    providers = [p for p in LLM_PROVIDER_ORDER if p in ("groq", "openrouter", "nvidia", "opencode_go", "opencode")]
     failed_attempts = 0
     last_error = None
     providers_tried = 0
