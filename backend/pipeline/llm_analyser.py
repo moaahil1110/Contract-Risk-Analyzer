@@ -1,8 +1,8 @@
 """
 LLM Analyser Module
 Unified LLM interface with fallback chain and circuit breaker:
-1. Groq llama-3.3-70b-versatile (primary)
-2. OpenRouter Llama 3.3 70B (fallback 1)
+1. Groq qwen/qwen3.8-27b (primary)
+2. OpenRouter google/gemma-4-31b-it:free (fallback 1)
 3. OpenCode Go open-model endpoint (fallback 2)
 
 All calls use temperature=0.1 for consistent output.
@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
 OPENCODE_GO_API_KEY = os.getenv("OPENCODE_GO_API_KEY")
 OPENCODE_GO_BASE_URL = os.getenv("OPENCODE_GO_BASE_URL", "https://opencode.ai/zen/go/v1").rstrip("/")
 OPENCODE_GO_MODEL = os.getenv("OPENCODE_GO_MODEL", "deepseek-v4-flash")
