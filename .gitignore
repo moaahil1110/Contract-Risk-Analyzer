@@ -52,5 +52,7 @@ backend/reports/
 .vscode/
 
 # Local assistant/tooling state
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
 .vercel
