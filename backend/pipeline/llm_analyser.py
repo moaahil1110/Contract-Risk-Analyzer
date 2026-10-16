@@ -33,6 +33,9 @@ OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
 NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-super-120b-a12b")
+# Nemotron reasons for longer than the free endpoint's ~30s window on full
+# analysis prompts, so thinking is off unless explicitly enabled.
+NVIDIA_ENABLE_THINKING = os.getenv("NVIDIA_ENABLE_THINKING", "false").lower() == "true"
 OPENCODE_GO_API_KEY = os.getenv("OPENCODE_GO_API_KEY")
 OPENCODE_GO_BASE_URL = os.getenv("OPENCODE_GO_BASE_URL", "https://opencode.ai/zen/go/v1").rstrip("/")
 OPENCODE_GO_MODEL = os.getenv("OPENCODE_GO_MODEL", "deepseek-v4-flash")
@@ -515,6 +518,7 @@ def _try_nvidia(prompt: str) -> Optional[str]:
                 "model": NVIDIA_MODEL,
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": LLM_TEMPERATURE,
+                "chat_template_kwargs": {"enable_thinking": NVIDIA_ENABLE_THINKING},
             },
             timeout=60,
         )
