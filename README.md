@@ -81,7 +81,7 @@ Set `REDIS_URL`, `CELERY_RESULT_BACKEND`, `SUPABASE_STORAGE_BUCKET`, and Supabas
 
 Worker pool selection is configured by the app so the command stays the same across environments:
 
-- `DEV_MODE=true` defaults to `CELERY_WORKER_POOL=solo` and `CELERY_WORKER_CONCURRENCY=1`. This avoids macOS `prefork` crashes with PyTorch/Chroma/sentence-transformers.
+- `DEV_MODE=true` defaults to `CELERY_WORKER_POOL=solo` and `CELERY_WORKER_CONCURRENCY=1`. This avoids macOS `prefork` crashes with Chroma/ONNX Runtime.
 - `DEV_MODE=false` defaults to `CELERY_WORKER_POOL=prefork` with production concurrency from `CELERY_WORKER_CONCURRENCY` or `WEB_CONCURRENCY`.
 - Unexpected worker task failures are persisted back to Supabase as failed jobs/contracts, so the frontend does not poll stale progress forever.
 
@@ -123,7 +123,7 @@ SUPABASE_STORAGE_BUCKET=contracts
 REDIS_URL=<redis-url>
 CELERY_RESULT_BACKEND=<redis-url>
 EMBEDDING_OFFLINE=true
-EMBEDDING_MODEL_PATH=/app/models/all-MiniLM-L6-v2
+EMBEDDING_MODEL_PATH=/app/.cache/fastembed
 GROQ_API_KEY=<provider-key>
 OPENROUTER_API_KEY=<provider-key>
 OPENCODE_GO_API_KEY=<provider-key>

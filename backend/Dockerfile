@@ -25,16 +25,18 @@ WORKDIR /app
 
 # Copy requirements first for better caching
 COPY backend/requirements.txt .
-# sentence-transformers depends on torch. Install a CPU-only torch wheel first so
-# pip does not pull large CUDA packages into the Railway image.
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.3.1
+# Embeddings run on fastembed (ONNX Runtime), so no PyTorch is installed.
+# This keeps the image smaller and each process several hundred MB lighter.
 RUN pip install --no-cache-dir -r requirements.txt
 
-ARG DOWNLOAD_EMBEDDING_MODEL=false
-ARG EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
-ARG EMBEDDING_MODEL_PATH=/app/models/all-MiniLM-L6-v2
-RUN if [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
-      python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('$EMBEDDING_MODEL_NAME').save('$EMBEDDING_MODEL_PATH')" ; \
+# Bake the ~90 MB ONNX model into the image so restarts don't re-download it.
+# If the download is skipped, fastembed fetches it into the same folder at runtime.
+ARG DOWNLOAD_EMBEDDING_MODEL=true
+ARG EMBEDDING_MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+ENV EMBEDDING_MODEL_PATH=/app/.cache/fastembed
+RUN mkdir -p "$EMBEDDING_MODEL_PATH" && \
+    if [ "$DOWNLOAD_EMBEDDING_MODEL" = "true" ]; then \
+      python -c "from fastembed import TextEmbedding; TextEmbedding('$EMBEDDING_MODEL_NAME', cache_dir='$EMBEDDING_MODEL_PATH')" ; \
     fi
 
 # Copy application code
@@ -49,6 +51,9 @@ ENV RAG_EAGER_INIT=false
 ENV PYTHONUNBUFFERED=1
 ENV TQDM_DISABLE=1
 ENV TOKENIZERS_PARALLELISM=false
+ENV EMBEDDING_THREADS=1
+# Fewer glibc memory pools; lowers RAM use of multi-threaded Python processes.
+ENV MALLOC_ARENA_MAX=2
 
 # Expose port
 EXPOSE 8000
