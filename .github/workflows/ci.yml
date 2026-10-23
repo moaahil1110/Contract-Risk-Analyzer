@@ -29,7 +29,7 @@ jobs:
       - name: Run backend tests
         run: python -m pytest tests
       - name: Prepare offline embedding model
-        run: python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/tmp/all-MiniLM-L6-v2')"
+        run: python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/all-MiniLM-L6-v2', cache_dir='/tmp/all-MiniLM-L6-v2')"
       - name: Build benchmark store
         env:
           EMBEDDING_OFFLINE: "true"
@@ -81,7 +81,7 @@ jobs:
         run: pip install -r requirements.txt
       - name: Prepare offline embedding model
         working-directory: backend
-        run: python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/tmp/all-MiniLM-L6-v2')"
+        run: python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/all-MiniLM-L6-v2', cache_dir='/tmp/all-MiniLM-L6-v2')"
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci

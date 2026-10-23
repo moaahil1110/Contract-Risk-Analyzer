@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
@@ -22,6 +22,28 @@ def embedding_model_source() -> str:
     if model_path:
         return model_path
     return os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL).strip() or DEFAULT_EMBEDDING_MODEL
+
+
+def embedding_model_name() -> str:
+    """Model id for fastembed. Bare sentence-transformers names get their hub prefix."""
+    name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL).strip() or DEFAULT_EMBEDDING_MODEL
+    if "/" not in name:
+        name = f"sentence-transformers/{name}"
+    return name
+
+
+def embedding_cache_dir() -> Optional[str]:
+    """Directory where fastembed stores (or finds) the ONNX model files."""
+    configured = os.getenv("EMBEDDING_MODEL_PATH", "").strip()
+    return configured or None
+
+
+def embedding_threads() -> int:
+    """ONNX Runtime threads. One thread keeps memory low on small instances."""
+    try:
+        return max(1, int(os.getenv("EMBEDDING_THREADS", "1")))
+    except ValueError:
+        return 1
 
 
 def validate_embedding_config() -> Dict[str, Any]:

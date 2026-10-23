@@ -13,16 +13,23 @@ from pathlib import Path
 import chromadb
 from chromadb.config import Settings
 
+import numpy as np
+
 from core.embedding_config import (
     apply_embedding_offline_env,
+    embedding_cache_dir,
+    embedding_model_name,
     embedding_model_source,
     embedding_offline_enabled,
+    embedding_threads,
     validate_embedding_config,
 )
 
 apply_embedding_offline_env()
 
-from sentence_transformers import SentenceTransformer
+# fastembed runs the same all-MiniLM-L6-v2 model through ONNX Runtime instead of
+# PyTorch, which cuts memory per process by several hundred MB.
+from fastembed import TextEmbedding
 
 from pipeline.benchmark_schema import (
     benchmark_dir,
@@ -37,26 +44,29 @@ logger = logging.getLogger(__name__)
 # Configuration
 DEFAULT_CHROMA_PERSIST_PATH = Path(__file__).resolve().parent.parent / "chroma_db"
 CHROMA_PERSIST_PATH = os.getenv("CHROMA_PERSIST_PATH", str(DEFAULT_CHROMA_PERSIST_PATH))
-EMBEDDING_MODEL = embedding_model_source()
+EMBEDDING_MODEL = embedding_model_name()
+EMBEDDING_BATCH_SIZE = 32
 COLLECTION_NAME = "contract_benchmarks"
 RAG_MIN_CITATION_SIMILARITY = float(os.getenv("RAG_MIN_CITATION_SIMILARITY", "0.70"))
 RAG_CLAUSE_TYPE_CONFIDENCE_THRESHOLD = float(os.getenv("RAG_CLAUSE_TYPE_CONFIDENCE_THRESHOLD", "0.45"))
 
 # Global instances (initialized on first use)
 _chroma_client: Optional[chromadb.Client] = None
-_embedding_model: Optional[SentenceTransformer] = None
+_embedding_model: Optional[TextEmbedding] = None
 _benchmark_collection: Optional[chromadb.Collection] = None
 
 
-def get_embedding_model() -> SentenceTransformer:
-    """Get or initialize the sentence-transformers embedding model."""
+def get_embedding_model() -> TextEmbedding:
+    """Get or initialize the fastembed (ONNX) embedding model."""
     global _embedding_model
     if _embedding_model is None:
         validate_embedding_config()
         logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
         try:
-            _embedding_model = SentenceTransformer(
-                EMBEDDING_MODEL,
+            _embedding_model = TextEmbedding(
+                model_name=EMBEDDING_MODEL,
+                cache_dir=embedding_cache_dir(),
+                threads=embedding_threads(),
                 local_files_only=embedding_offline_enabled(),
             )
         except Exception as exc:
@@ -101,18 +111,22 @@ def get_benchmark_collection() -> chromadb.Collection:
     return _benchmark_collection
 
 
+def _encode(texts: List[str]) -> np.ndarray:
+    """Embed texts as a (n, dim) array of unit-length vectors."""
+    if not texts:
+        return np.zeros((0, 0), dtype=np.float32)
+    model = get_embedding_model()
+    return np.asarray(list(model.embed(texts, batch_size=EMBEDDING_BATCH_SIZE)), dtype=np.float32)
+
+
 def embed_text(text: str) -> List[float]:
     """Generate embedding for a single text."""
-    model = get_embedding_model()
-    embedding = model.encode(text, convert_to_numpy=True)
-    return embedding.tolist()
+    return _encode([text])[0].tolist()
 
 
 def embed_texts(texts: List[str]) -> List[List[float]]:
     """Generate embeddings for multiple texts (batch processing)."""
-    model = get_embedding_model()
-    embeddings = model.encode(texts, convert_to_numpy=True, batch_size=32)
-    return embeddings.tolist()
+    return _encode(texts).tolist()
 
 
 def _metadata_value(value: Any) -> Any:
@@ -161,7 +175,6 @@ def build_benchmark_store(benchmark_directory: Optional[str] = None) -> Dict[str
         raise ValueError("Benchmark schema validation failed: " + "; ".join(validation_errors[:10]))
 
     collection = get_benchmark_collection()
-    model = get_embedding_model()
 
     total_added = 0
     total_skipped = 0
@@ -194,7 +207,7 @@ def build_benchmark_store(benchmark_directory: Optional[str] = None) -> Dict[str
             continue
 
         batch_texts = texts[start:start + 128]
-        embeddings = model.encode(batch_texts, convert_to_numpy=True, batch_size=32)
+        embeddings = _encode(batch_texts)
         collection.add(
             ids=batch_ids,
             embeddings=embeddings.tolist(),
@@ -461,7 +474,7 @@ def get_collection_stats() -> Dict[str, Any]:
         "persist_path": CHROMA_PERSIST_PATH,
         "embedding_model": EMBEDDING_MODEL,
         "embedding_offline": embedding_offline_enabled(),
-        "embedding_model_source": EMBEDDING_MODEL,
+        "embedding_model_source": embedding_model_source(),
     }
 
 
