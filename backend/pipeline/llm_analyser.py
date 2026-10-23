@@ -45,12 +45,17 @@ def _groq_reasoning_effort() -> Optional[str]:
     return None
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
+NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-ultra-550b-a55b")
+# Nemotron 3 reasons by default; NVIDIA documents enable_thinking=False to turn it off.
+NVIDIA_ENABLE_THINKING = os.getenv("NVIDIA_ENABLE_THINKING", "false").lower() == "true"
 OPENCODE_GO_API_KEY = os.getenv("OPENCODE_GO_API_KEY")
 OPENCODE_GO_BASE_URL = os.getenv("OPENCODE_GO_BASE_URL", "https://opencode.ai/zen/go/v1").rstrip("/")
 OPENCODE_GO_MODEL = os.getenv("OPENCODE_GO_MODEL", "deepseek-v4-flash")
 LLM_TEMPERATURE = 0.1
 
-LLM_PROVIDER_ORDER = [p.strip() for p in os.getenv("LLM_PROVIDER_ORDER", "groq,openrouter,opencode_go").split(",") if p.strip()]
+LLM_PROVIDER_ORDER = [p.strip() for p in os.getenv("LLM_PROVIDER_ORDER", "groq,nvidia").split(",") if p.strip()]
 LLM_PROVIDER_MAX_RETRIES = max(1, int(os.getenv("LLM_PROVIDER_MAX_RETRIES", "2")))
 LLM_PROVIDER_COOLDOWN_SECONDS = max(1, int(os.getenv("LLM_PROVIDER_COOLDOWN_SECONDS", "60")))
 LLM_PROVIDER_MAX_COOLDOWN_SECONDS = max(
@@ -563,6 +568,48 @@ def _try_opencode_go(prompt: str) -> Optional[str]:
         raise
 
 
+def _try_nvidia(prompt: str) -> Optional[str]:
+    """Try NVIDIA NIM (free endpoint) and return raw response text. Returns None on 429."""
+    if not NVIDIA_API_KEY:
+        logger.warning("NVIDIA_API_KEY not set")
+        return None
+
+    try:
+        logger.info("Calling NVIDIA NIM (%s, thinking=%s)...", NVIDIA_MODEL, NVIDIA_ENABLE_THINKING)
+
+        response = httpx.post(
+            f"{NVIDIA_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {NVIDIA_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": NVIDIA_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": LLM_TEMPERATURE,
+                "chat_template_kwargs": {"enable_thinking": NVIDIA_ENABLE_THINKING},
+            },
+            timeout=60,
+        )
+        logger.info("NVIDIA NIM status: %s", response.status_code)
+        if response.is_error:
+            logger.error("NVIDIA NIM error body: %s", response.text[:500])
+        response.raise_for_status()
+        return _strip_think_tags(response.json()["choices"][0]["message"]["content"])
+
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            retry_after = _parse_retry_after(e)
+            _mark_provider_unavailable("nvidia", retry_after)
+            logger.warning("NVIDIA NIM returned 429, cooling down for %s seconds", retry_after or LLM_PROVIDER_COOLDOWN_SECONDS)
+            return None
+        logger.error("NVIDIA NIM HTTP error: %s", e)
+        raise
+    except Exception as e:
+        logger.error("NVIDIA NIM error: %s", e)
+        raise
+
+
 def _call_provider(provider: str, prompt: str) -> Optional[str]:
     """Route to the appropriate provider."""
     if provider == "groq":
@@ -571,6 +618,8 @@ def _call_provider(provider: str, prompt: str) -> Optional[str]:
         return _try_openrouter(prompt)
     elif provider in {"opencode_go", "opencode"}:
         return _try_opencode_go(prompt)
+    elif provider == "nvidia":
+        return _try_nvidia(prompt)
     return None
 
 
@@ -624,7 +673,7 @@ async def analyse_clause(
             **_evidence_failure_fields(),
         }
     # Provider chain with circuit breaker and fallbacks.
-    providers = [p for p in LLM_PROVIDER_ORDER if p in ("groq", "openrouter", "opencode_go", "opencode")]
+    providers = [p for p in LLM_PROVIDER_ORDER if p in ("groq", "nvidia", "openrouter", "opencode_go", "opencode")]
     failed_attempts = 0
     last_error = None
     providers_tried = 0

@@ -126,10 +126,10 @@ EMBEDDING_OFFLINE=true
 EMBEDDING_MODEL_PATH=/app/.cache/fastembed
 GROQ_API_KEY=<provider-key>
 OPENROUTER_API_KEY=<provider-key>
-OPENCODE_GO_API_KEY=<provider-key>
+NVIDIA_API_KEY=<provider-key>
 OPENCODE_GO_BASE_URL=https://opencode.ai/zen/go/v1
 OPENCODE_GO_MODEL=deepseek-v4-flash
-LLM_PROVIDER_ORDER=groq,opencode_go
+LLM_PROVIDER_ORDER=groq,nvidia
 BUILD_BENCHMARKS_ON_START=true
 ANALYSIS_ACTIVE_JOB_TIMEOUT_MINUTES=30
 ```
