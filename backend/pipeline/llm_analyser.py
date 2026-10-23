@@ -26,7 +26,23 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+# llama-3.3-70b-versatile was retired on Groq's free/developer tier (16 Aug 2026).
+# Qwen 3.8 27B can run with thinking fully off, so it answers directly.
+GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+
+
+def _groq_reasoning_effort() -> Optional[str]:
+    """reasoning_effort to send to Groq, or None to leave it out.
+
+    Defaults to "none" for Qwen models (thinking off). Other models only get it
+    when GROQ_REASONING_EFFORT is set, since not every model accepts "none".
+    """
+    configured = os.getenv("GROQ_REASONING_EFFORT", "").strip()
+    if configured:
+        return configured
+    if GROQ_MODEL.lower().startswith("qwen/"):
+        return "none"
+    return None
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
 OPENCODE_GO_API_KEY = os.getenv("OPENCODE_GO_API_KEY")
@@ -413,6 +429,13 @@ def _evidence_failure_fields() -> Dict[str, Any]:
     }
 
 
+def _strip_think_tags(text: Optional[str]) -> Optional[str]:
+    """Drop a leading <think>...</think> block if a model returns its reasoning inline."""
+    if not text or "<think>" not in text:
+        return text
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
+
 def _try_groq(prompt: str) -> Optional[str]:
     """Try Groq and return raw response text. Returns None on 429 to open circuit."""
     if not GROQ_API_KEY:
@@ -420,7 +443,16 @@ def _try_groq(prompt: str) -> Optional[str]:
         return None
 
     try:
-        logger.info("Calling Groq (%s)...", GROQ_MODEL)
+        reasoning_effort = _groq_reasoning_effort()
+        logger.info("Calling Groq (%s, reasoning_effort=%s)...", GROQ_MODEL, reasoning_effort)
+
+        payload = {
+            "model": GROQ_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": LLM_TEMPERATURE,
+        }
+        if reasoning_effort:
+            payload["reasoning_effort"] = reasoning_effort
 
         response = httpx.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -428,16 +460,14 @@ def _try_groq(prompt: str) -> Optional[str]:
                 "Authorization": f"Bearer {GROQ_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": GROQ_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": LLM_TEMPERATURE,
-            },
+            json=payload,
             timeout=30,
         )
         logger.info("Groq status: %s", response.status_code)
+        if response.is_error:
+            logger.error("Groq error body: %s", response.text[:500])
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
+        return _strip_think_tags(response.json()["choices"][0]["message"]["content"])
 
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 429:
@@ -515,6 +545,8 @@ def _try_opencode_go(prompt: str) -> Optional[str]:
             timeout=60,
         )
         logger.info("OpenCode Go status: %s", response.status_code)
+        if response.is_error:
+            logger.error("OpenCode Go error body: %s", response.text[:500])
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
 
